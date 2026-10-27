@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12131c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Balon">
+<meta name="robots" content="noindex">
+<title>Balon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* Layout: tek sütunlu okuyucu. Sayfalar kenardan kenara akar, metin ve kontroller güvenli oluğa oturur. */
+:root{
+  --ink:#12131c; --ink-2:#1c1e2b; --line:#2e3144;
+  --paper:#f3efe4; --mute:#9a9bab;
+  --accent:#ffd23f;     /* baskı sarısı */
+  --bubble:#fffdf6; --bubble-ink:#17171c;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --f-letter:"Patrick Hand","Chalkboard SE","Comic Sans MS",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --gl:max(16px,env(safe-area-inset-left,0px));
+  --gr:max(16px,env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--ink);color:var(--paper)}
+body{min-height:100dvh;font-family:var(--f-display);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--ink)}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- üst çubuk */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:8px;padding-block:10px 14px;padding-left:var(--gl);padding-right:var(--gr);background:linear-gradient(var(--ink) 74%,transparent);transition:transform .3s var(--ease)}
+.bar.hide{transform:translateY(-120%)}
+.mark{flex:1;min-width:0;font-weight:800;font-size:22px;letter-spacing:-.04em}
+.mark i{font-style:normal;color:var(--accent)}
+.add{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer;transition:transform .15s}
+.add:active{transform:scale(.95)}
+.icon-btn{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--ink-2)}
+.icon-btn[aria-expanded=true]{border-color:var(--accent)}
+
+.menu{position:fixed;z-index:25;top:calc(64px + env(safe-area-inset-top,0px));right:var(--gr);width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 90px);overflow:auto;padding:6px;background:var(--ink-2);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 48px rgba(0,0,0,.5);animation:drop .2s var(--ease)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:52px;padding:0 12px;font-size:15px}
+.row + .row,.row + .field,.field + .row{border-top:1px solid var(--line)}
+.row select{max-width:52%;padding:6px 8px;background:var(--ink);border:1px solid var(--line);border-radius:8px}
+.field{display:grid;gap:6px;padding:12px;font-size:15px}
+.field input{width:100%;padding:10px 12px;background:var(--ink);border:1px solid var(--line);border-radius:10px;font-size:16px}
+.field small{color:var(--mute);font-size:13px;line-height:1.35}
+.switch{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:46px;height:28px;margin:0;border-radius:99px;background:var(--line);transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--paper);transition:transform .2s var(--ease)}
+.switch:checked{background:var(--accent)}
+.switch:checked::after{transform:translateX(18px);background:var(--ink)}
+.danger{width:100%;min-height:48px;border:0;border-top:1px solid var(--line);background:none;text-align:left;padding:0 12px;color:var(--mute)}
+.danger.armed{color:var(--accent);font-weight:600}
+
+/* ---------- giriş */
+.intro{position:relative;display:grid;gap:22px;max-width:760px;margin:0 auto;padding-block:3vh 30px;padding-left:var(--gl);padding-right:var(--gr)}
+.intro::before{content:"";position:absolute;right:0;top:-10px;width:62%;height:210px;z-index:-1;background:radial-gradient(circle,var(--accent) 1.3px,transparent 1.8px) 0 0/10px 10px;-webkit-mask:linear-gradient(225deg,#000 10%,transparent 70%);mask:linear-gradient(225deg,#000 10%,transparent 70%);opacity:.55}
+.intro h1{margin:0;max-width:11ch;font-size:clamp(40px,11vw,72px);font-weight:800;line-height:.95;letter-spacing:-.05em;text-wrap:balance}
+.intro h1 em{font-style:normal;color:var(--accent)}
+.steps{display:grid;gap:12px;margin:0;padding:0;list-style:none;counter-reset:s}
+.steps li{display:grid;grid-template-columns:28px 1fr;align-items:baseline;counter-increment:s}
+.steps li::before{content:counter(s);font-size:13px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+.note{margin:0;max-width:56ch;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;font-size:14px;color:var(--mute)}
+.note b{color:var(--paper);font-weight:600}
+
+/* ---------- okuyucu */
+.reader{max-width:760px;margin:0 auto;padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+.page{position:relative;margin:0;background:var(--ink-2);line-height:0;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.page + .page{margin-top:2px}
+.page img{display:block;width:100%;height:auto;-webkit-user-drag:none}
+.layer{position:absolute;inset:0}
+.tag{position:absolute;top:10px;right:max(10px,env(safe-area-inset-right,0px));padding:9px 13px;border:0;border-radius:99px;background:rgba(18,19,28,.76);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:12px;font-weight:600;line-height:1;letter-spacing:.06em;text-transform:uppercase;font-variant-numeric:tabular-nums;transition:opacity .25s,background .25s}
+.page[data-state=queued] .tag,.page[data-state=busy] .tag{background:var(--paper);color:var(--ink)}
+.page[data-state=error] .tag{background:var(--accent);color:var(--ink)}
+.page[data-state=done] .tag{opacity:0;visibility:hidden}
+.badge{position:absolute;bottom:10px;left:max(10px,env(safe-area-inset-left,0px));padding:7px 10px;border-radius:6px;background:var(--accent);color:var(--ink);font-size:11px;font-weight:800;line-height:1;letter-spacing:.12em;text-transform:uppercase}
+.page[data-state=busy]::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent 42%,rgba(255,210,63,.28) 50%,transparent 58%);animation:scan 1.7s linear infinite}
+
+.bubble{position:absolute;display:flex;align-items:center;justify-content:center;padding:2px 4px;border:0;border-radius:12px;background:var(--bubble);color:var(--bubble-ink);font-family:var(--f-letter);line-height:1.02;text-align:center;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.07);animation:pop .3s cubic-bezier(.2,.9,.3,1.25) both;transition:background .2s,color .2s,box-shadow .2s}
+.bubble span{display:block;max-width:100%;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
+.bubble:active{filter:brightness(.93)}
+.bubble.pending span{opacity:.35}
+body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transparent;box-shadow:inset 0 0 0 2px rgba(255,210,63,.9)}
+
+/* ---------- alt kart */
+.sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;background:rgba(0,0,0,.5);opacity:0;transition:opacity .25s}
+.sheet.open{opacity:1}
+.card{width:100%;max-width:760px;max-height:92dvh;overflow:auto;margin:0 auto;padding-block:24px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(22px,env(safe-area-inset-left,0px));padding-right:max(22px,env(safe-area-inset-right,0px));background:var(--paper);color:var(--ink);border-radius:24px 24px 0 0;transform:translateY(100%);transition:transform .34s var(--ease)}
+.sheet.open .card{transform:none}
+.card-tr{margin:0;font-family:var(--f-letter);font-size:28px;line-height:1.16}
+.card-label{display:block;margin-top:18px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7a7568}
+.card-src{display:block;width:100%;margin-top:6px;padding:10px 12px;min-height:64px;resize:vertical;border:1px solid #d3ccbd;border-radius:12px;background:#fbf9f3;color:var(--ink);font-size:16px;line-height:1.4}
+.card-links{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:14px}
+.card-links a,.card-links button{padding:4px 0;border:0;background:none;color:#4a4639;text-decoration:underline;text-underline-offset:3px}
+.card-actions{display:flex;gap:8px;margin-top:18px}
+.card-actions button{flex:1;min-height:48px;border:1px solid #d3ccbd;border-radius:12px;background:none;color:var(--ink);font-size:15px;font-weight:600}
+.card-actions .primary{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:50;width:max-content;max-width:calc(100vw - 32px);padding:12px 16px;border-radius:12px;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.35;box-shadow:0 12px 32px rgba(0,0,0,.45);transform:translate(-50%,170%);visibility:hidden;transition:transform .3s var(--ease),visibility 0s .3s}
+.toast.show{transform:translate(-50%,0);visibility:visible;transition:transform .3s var(--ease)}
+
+@keyframes scan{from{transform:translateY(-55%)}to{transform:translateY(55%)}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="bar" id="bar">
+  <div class="mark" aria-hidden="true">Bal<i>o</i>n</div>
+  <label class="add" for="file">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    Sayfa ekle
+  </label>
+  <input class="sr" id="file" type="file" accept="image/*" multiple>
+  <button class="icon-btn" id="menu-btn" type="button" aria-label="Ayarlar" aria-expanded="false" aria-controls="menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+  </button>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <label class="row" for="src">Sayfadaki dil
+    <select id="src">
+      <option value="en">İngilizce</option>
+      <option value="ko">Korece</option>
+      <option value="ja">Japonca (yatay)</option>
+      <option value="jav">Japonca (dikey)</option>
+      <option value="zh">Çince</option>
+      <option value="es">İspanyolca</option>
+      <option value="fr">Fransızca</option>
+    </select>
+  </label>
+  <label class="row" for="dst">Çeviri dili
+    <select id="dst"><option value="tr">Türkçe</option><option value="en">İngilizce</option><option value="de">Almanca</option></select>
+  </label>
+  <label class="row" for="layer">Çeviriyi balonun üstüne yaz <input class="switch" id="layer" type="checkbox" role="switch" checked></label>
+  <label class="field" for="email">E-posta (isteğe bağlı)
+    <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="ornek@mail.com">
+    <small>Çeviri servisi MyMemory, e-posta yazarsan günlük ücretsiz çeviri limitini 5.000 karakterden 50.000 karaktere çıkarır.</small>
+  </label>
+  <button class="danger" id="clear" type="button">Tüm sayfaları kaldır</button>
+</div>
+
+<section class="intro" id="intro">
+  <h1>Çizgi romanı <em>kendi dilinde</em> oku.</h1>
+  <ol class="steps">
+    <li>Okuduğun sitede sayfaların ekran görüntüsünü al.</li>
+    <li>“Sayfa ekle”ye dokun, Fotoğraflar'dan seç.</li>
+    <li>Sayfaya dokun: yazılar telefonunda taranır, sonra çevrilir.</li>
+    <li>Balona dokun: aslını gör, yanlış okunduysa düzelt.</li>
+  </ol>
+  <p class="note"><b>Nasıl çalışır?</b> Yazı tanıma telefonunda yapılır, ilk taramada dil dosyası bir kez indirilir. Çeviri ücretsiz MyMemory servisiyle yapılır, servise sadece balon metinleri gider. Sayfalar bu telefonda kalır.</p>
+</section>
+
+<main class="reader" id="reader"></main>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="card-tr" hidden>
+  <div class="card">
+    <p class="card-tr" id="card-tr" aria-live="polite"></p>
+    <label class="card-label" for="card-src">Taranan metin</label>
+    <textarea class="card-src" id="card-src" rows="2" spellcheck="false"></textarea>
+    <div class="card-links">
+      <button type="button" id="card-redo">Düzelttim, yeniden çevir</button>
+      <a id="card-google" href="https://translate.google.com" target="_blank" rel="noopener">Google Çeviri'de aç</a>
+      <button type="button" id="card-del">Bu balonu kaldır</button>
+    </div>
+    <div class="card-actions">
+      <button type="button" id="card-copy">Metni kopyala</button>
+      <button type="button" class="primary" id="card-close">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const ls = {
+    get(k, d) { try { const v = localStorage.getItem('balon.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('balon.' + k, JSON.stringify(v)); } catch {} },
+  };
+  const el = {
+    bar: $('#bar'), file: $('#file'), reader: $('#reader'), intro: $('#intro'),
+    menuBtn: $('#menu-btn'), menu: $('#menu'), src: $('#src'), dst: $('#dst'), layer: $('#layer'), email: $('#email'), clear: $('#clear'),
+    sheet: $('#sheet'), tr: $('#card-tr'), text: $('#card-src'), redo: $('#card-redo'), google: $('#card-google'), del: $('#card-del'),
+    copy: $('#card-copy'), close: $('#card-close'), toast: $('#toast'),
+  };
+
+  // Tesseract dil modeli + çeviri servisi dil kodu
+  const SRC = {
+    en: { ocr: 'eng', mt: 'en', cjk: false },
+    ko: { ocr: 'kor', mt: 'ko', cjk: true },
+    ja: { ocr: 'jpn', mt: 'ja', cjk: true },
+    jav: { ocr: 'jpn_vert', mt: 'ja', cjk: true, vertical: true },
+    zh: { ocr: 'chi_sim', mt: 'zh-CN', cjk: true },
+    es: { ocr: 'spa', mt: 'es', cjk: false },
+    fr: { ocr: 'fra', mt: 'fr', cjk: false },
+  };
+  const DST = { tr: 'tr', en: 'en', de: 'de' };
+
+  const settings = { src: ls.get('src', 'en'), dst: ls.get('dst', 'tr'), layer: ls.get('layer', true), email: ls.get('email', '') };
+  if (!SRC[settings.src]) settings.src = 'en';
+  el.src.value = settings.src;
+  el.dst.value = settings.dst;
+  el.layer.checked = settings.layer;
+  el.email.value = settings.email;
+  document.body.classList.toggle('layer-off', !settings.layer);
+
+  const pair = () => SRC[settings.src].mt + '|' + DST[settings.dst];
+
+  /**
+   * Sayfa: blob + tarama sonucu (ocr) + dil çiftine göre çeviriler (tr)
+   * ocr = { src, bubbles:[{x,y,w,h,text}] }   (koordinatlar sayfaya oranla 0-1)
+   * tr  = { "en|tr": ["...", ...] }           (bubbles ile aynı sırada)
+   */
+  let pages = [];
+
+  /* ---------- toast */
+  let toastT;
+  function toast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => el.toast.classList.remove('show'), 4200);
+  }
+
+  /* ---------- yerel kayıt (IndexedDB) */
+  const store = (() => {
+    let dbp;
+    const open = () => dbp ||= new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open('balon', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('pages', { keyPath: 'id' });
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+    const run = async (mode, fn) => {
+      try {
+        const db = await open();
+        return await new Promise((res, rej) => {
+          const t = db.transaction('pages', mode);
+          const req = fn(t.objectStore('pages'));
+          t.oncomplete = () => res(req ? req.result : undefined);
+          t.onerror = () => rej(t.error);
+        });
+      } catch { return null; }
+    };
+    return {
+      all: () => run('readonly', (s) => s.getAll()),
+      put: (p) => p.sample ? null : run('readwrite', (s) => s.put({ id: p.id, order: p.order, blob: p.blob, ocr: p.ocr, tr: p.tr })),
+      clear: () => run('readwrite', (s) => s.clear()),
+    };
+  })();
+
+  /* =========================================================== TARAMA */
+  let worker = null, workerLang = null, onProgress = null;
+
+  async function getWorker(lang) {
+    if (worker && workerLang === lang) return worker;
+    if (worker) { await worker.terminate().catch(() => {}); worker = null; }
+    if (!window.Tesseract) throw new Error('ocr_missing');
+    worker = await Tesseract.createWorker(lang, 1, {
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0',
+      logger: (m) => onProgress && onProgress(m),
+    });
+    // 11 = seyrek metin: sayfanın her yerine dağılmış balonları bulur
+    await worker.setParameters({ tessedit_pageseg_mode: '11', user_defined_dpi: '300' });
+    workerLang = lang;
+    return worker;
+  }
+
+  function loadImage(url) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = () => rej(new Error('decode'));
+      img.src = url;
+    });
+  }
+
+  // Uzun webtoon görsellerini üst üste binen parçalara böl (kaynak piksel cinsinden)
+  function slicesOf(W, H) {
+    const seg = Math.round(W * 1.8);
+    if (H <= seg * 1.25) return [[0, H]];
+    const out = [], step = Math.round(seg * 0.75);
+    for (let y = 0; ; y += step) {
+      const y2 = Math.min(y + seg, H);
+      out.push([y, y2 - y]);
+      if (y2 >= H) break;
+    }
+    return out;
+  }
+
+  // Parçayı tuvale çiz: küçükse büyüt (Tesseract iri harfi daha iyi okur), gri tona çevir
+  function prepCanvas(img, y0, h) {
+    const W = img.naturalWidth;
+    const k = Math.max(1, Math.min(2, 1400 / W));
+    const c = document.createElement('canvas');
+    c.width = Math.round(W * k);
+    c.height = Math.round(h * k);
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, 0, y0, W, h, 0, 0, c.width, c.height);
+    const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+    for (let i = 0; i < a.length; i += 4) {
+      const v = a[i] * 0.299 + a[i + 1] * 0.587 + a[i + 2] * 0.114;
+      a[i] = a[i + 1] = a[i + 2] = v;
+    }
+    g.putImageData(d, 0, 0);
+    return { canvas: c, k };
+  }
+
+  const LETTER = /[\p{L}\p{N}]/u;
+  function goodWord(w) {
+    const t = (w.text || '').trim();
+    if (!t || w.confidence < 50) return false;
+    const letters = [...t].filter((ch) => LETTER.test(ch)).length;
+    return letters > 0 && letters / [...t].length >= 0.5;
+  }
+
+  // Tesseract satırlarını balonlara topla: birbirine bir satır yüksekliğinden yakın satırlar aynı balon
+  function groupLines(lines, vertical) {
+    const n = lines.length, parent = lines.map((_, i) => i);
+    const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+    const grow = (b) => {
+      const t = Math.min(b.x1 - b.x0, b.y1 - b.y0) * 0.75;
+      return { x0: b.x0 - t, y0: b.y0 - t, x1: b.x1 + t, y1: b.y1 + t };
+    };
+    const big = lines.map((l) => grow(l.bbox));
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const a = big[i], b = big[j];
+      if (a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1) parent[find(i)] = find(j);
+    }
+    const groups = new Map();
+    lines.forEach((l, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(l); });
+    return [...groups.values()].map((ls) => {
+      ls.sort(vertical ? (a, b) => b.bbox.x0 - a.bbox.x0 : (a, b) => a.bbox.y0 - b.bbox.y0 || a.bbox.x0 - b.bbox.x0);
+      return {
+        lines: ls.map((l) => l.text),
+        x0: Math.min(...ls.map((l) => l.bbox.x0)), y0: Math.min(...ls.map((l) => l.bbox.y0)),
+        x1: Math.max(...ls.map((l) => l.bbox.x1)), y1: Math.max(...ls.map((l) => l.bbox.y1)),
+      };
+    });
+  }
+
+  // Satırları tek cümleye çevir; TAMAMEN BÜYÜK HARF yazıyı cümle düzenine al (çeviri servisi daha iyi anlar)
+  function joinText(lines, src) {
+    const conf = SRC[src];
+    if (conf.cjk) return lines.join('').replace(/\s+/g, '');
+    let t = '';
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!t) t = line;
+      else if (/[-‐]$/.test(t) && /^\p{Ll}|^\p{Lu}/u.test(line)) t = t.replace(/[-‐]$/, '') + line;
+      else t += ' ' + line;
+    }
+    t = t.replace(/\s+/g, ' ').replace(/\s+([,.!?;:…])/g, '$1').trim();
+    const letters = t.replace(/[^\p{L}]/gu, '');
+    if (letters.length > 3 && letters === letters.toUpperCase()) {
+      const loc = src === 'en' ? 'en' : src;
+      t = t.toLocaleLowerCase(loc).replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (m, a, b) => a + b.toLocaleUpperCase(loc));
+      if (src === 'en') t = t.replace(/\bi\b/g, 'I').replace(/\bi'/g, "I'");
+    }
+    return t;
+  }
+
+  async function scan(p, report) {
+    const conf = SRC[settings.src];
+    const img = await loadImage(p.url);
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const parts = slicesOf(W, H);
+    const w = await getWorker(conf.ocr);
+    const found = [];
+    for (let s = 0; s < parts.length; s++) {
+      const [y0, h] = parts[s];
+      onProgress = (m) => {
+        if (m.status === 'recognizing text') report(`Taranıyor ${Math.round(((s + m.progress) / parts.length) * 100)}%`);
+        else if (/load/i.test(m.status)) report('Dil dosyası iniyor' + (m.progress ? ' ' + Math.round(m.progress * 100) + '%' : ''));
+      };
+      const { canvas, k } = prepCanvas(img, y0, h);
+      const { data } = await w.recognize(canvas, {}, { blocks: true, text: false });
+      const lines = [];
+      for (const block of data.blocks || []) for (const para of block.paragraphs || []) for (const line of para.lines || []) {
+        const words = (line.words || []).filter(goodWord);
+        if (!words.length) continue;
+        const text = words.map((x) => x.text.trim()).join(conf.cjk ? '' : ' ');
+        if ([...text.replace(/[^\p{L}\p{N}]/gu, '')].length < (conf.cjk ? 1 : 2)) continue;
+        lines.push({
+          text,
+          bbox: {
+            x0: Math.min(...words.map((x) => x.bbox.x0)), y0: Math.min(...words.map((x) => x.bbox.y0)),
+            x1: Math.max(...words.map((x) => x.bbox.x1)), y1: Math.max(...words.map((x) => x.bbox.y1)),
+          },
+        });
+      }
+      for (const g of groupLines(lines, conf.vertical)) {
+        const text = joinText(g.lines, settings.src);
+        if (!text) continue;
+        found.push({
+          x: g.x0 / k / W, w: (g.x1 - g.x0) / k / W,
+          y: (y0 + g.y0 / k) / H, h: (g.y1 - g.y0) / k / H,
+          text, s,
+        });
+      }
+    }
+    onProgress = null;
+    return dedupe(found, W, H);
+  }
+
+  // Dilimlerin üst üste bindiği yerde iki kez bulunan balonları tekle
+  function dedupe(list, W, H) {
+    const keep = [];
+    for (const b of list) {
+      let dup = false;
+      for (const k of keep) {
+        if (k.s === b.s) continue;
+        const ix = Math.max(0, Math.min(b.x + b.w, k.x + k.w) - Math.max(b.x, k.x)) * W;
+        const iy = Math.max(0, Math.min(b.y + b.h, k.y + k.h) - Math.max(b.y, k.y)) * H;
+        const small = Math.min(b.w * b.h, k.w * k.h) * W * H;
+        if (small > 0 && (ix * iy) / small > 0.5) {
+          if (b.text.length > k.text.length) Object.assign(k, b);
+          dup = true;
+          break;
+        }
+      }
+      if (!dup) keep.push(b);
+    }
+    return keep.map(({ s, ...rest }) => rest);
+  }
+
+  /* =========================================================== ÇEVİRİ */
+  class QuotaError extends Error {}
+  const memo = (key) => { try { return localStorage.getItem('balon.mt.' + key); } catch { return null; } };
+  const keep = (key, v) => { try { localStorage.setItem('balon.mt.' + key, v); } catch {} };
+
+  async function translateText(text, langpair) {
+    const key = langpair + '|' + text;
+    const hit = memo(key);
+    if (hit !== null) return hit;
+    const q = new URLSearchParams({ q: text.slice(0, 480), langpair });
+    if (settings.email) q.set('de', settings.email);
+    let r;
+    try { r = await fetch('https://api.mymemory.translated.net/get?' + q); }
+    catch { throw new Error('network'); }
+    const j = await r.json().catch(() => null);
+    const out = j?.responseData?.translatedText ?? '';
+    if (r.status === 429 || j?.quotaFinished || /MYMEMORY WARNING/i.test(out)) throw new QuotaError();
+    if (!r.ok || Number(j?.responseStatus) >= 400 || !out) throw new Error('mt');
+    const clean = decodeEntities(out);
+    keep(key, clean);
+    return clean;
+  }
+
+  function decodeEntities(s) {
+    const t = document.createElement('textarea');
+    t.innerHTML = s;
+    return t.value;
+  }
+
+  // Balonları en fazla 3'erli gruplar halinde çevir
+  async function translateAll(p, report) {
+    const lp = pair();
+    const bubbles = p.ocr.bubbles;
+    const out = p.tr[lp] || new Array(bubbles.length).fill(null);
+    let done = out.filter(Boolean).length;
+    const todo = bubbles.map((b, i) => i).filter((i) => !out[i]);
+    report(`Çevriliyor ${done}/${bubbles.length}`);
+    let quota = false;
+    const runOne = async (i) => {
+      try {
+        out[i] = await translateText(bubbles[i].text, lp);
+      } catch (e) {
+        if (e instanceof QuotaError) quota = true;
+        else throw e;
+      }
+      done++;
+      report(`Çevriliyor ${done}/${bubbles.length}`);
+    };
+    for (let i = 0; i < todo.length && !quota; i += 3) await Promise.all(todo.slice(i, i + 3).map(runOne));
+    p.tr[lp] = out;
+    if (quota) throw new QuotaError();
+  }
+
+  /* =========================================================== SAYFA AKIŞI */
+  const LABEL = { idle: 'Çevir', queued: 'Sırada', error: 'Tekrar dene' };
+
+  function setState(p, s, label) {
+    p.fig.dataset.state = s;
+    const tag = p.fig.querySelector('.tag');
+    tag.textContent = label || LABEL[s] || '';
+    tag.setAttribute('aria-label', s === 'idle' ? 'Bu sayfayı tara ve çevir' : tag.textContent);
+  }
+
+  const hasScan = (p) => p.ocr && p.ocr.src === settings.src;
+  const hasTr = (p) => hasScan(p) && Array.isArray(p.tr[pair()]) && p.tr[pair()].length === p.ocr.bubbles.length && p.tr[pair()].every(Boolean);
+
+  function refresh(p) {
+    p.fig.classList.remove('peek');
+    if (hasTr(p)) { draw(p); setState(p, 'done'); }
+    else { p.fig.querySelector('.layer').textContent = ''; setState(p, p.fig.dataset.state === 'error' ? 'error' : 'idle'); }
+  }
+
+  async function process(p) {
+    const report = (t) => setState(p, 'busy', t);
+    report('Hazırlanıyor');
+    try {
+      if (!hasScan(p)) {
+        p.ocr = { src: settings.src, bubbles: await scan(p, report) };
+        p.tr = {};
+        store.put(p);
+      }
+      if (!p.ocr.bubbles.length) {
+        setState(p, 'done');
+        toast('Bu sayfada okunabilir yazı bulunamadı. Ayarlardan sayfadaki dili kontrol et.');
+        return;
+      }
+      await translateAll(p, report);
+      store.put(p);
+      refresh(p);
+    } catch (e) {
+      store.put(p);
+      setState(p, 'error');
+      toast(errorText(e));
+    }
+  }
+
+  function errorText(e) {
+    if (e instanceof QuotaError) return 'Bugünkü ücretsiz çeviri limiti doldu. Ayarlara e-posta ekleyerek limiti artırabilir ya da yarın devam edebilirsin.';
+    if (e?.message === 'decode') return 'Görsel açılamadı. Başka bir ekran görüntüsü dene.';
+    if (e?.message === 'ocr_missing') return 'Yazı tanıma yüklenemedi. İnternet bağlantını kontrol edip sayfayı yenile.';
+    if (e?.message === 'network') return 'Çeviri servisine ulaşılamadı. İnternet bağlantını kontrol edip tekrar dokun.';
+    if (e?.message === 'mt') return 'Çeviri servisi yanıt vermedi. Biraz sonra tekrar dokun.';
+    return 'Tarama başarısız oldu. Sayfaya tekrar dokun.';
+  }
+
+  // Aynı anda tek sayfa işlenir (telefon belleği için)
+  const queue = [];
+  let busy = false;
+  function enqueue(p) {
+    if (!['idle', 'error'].includes(p.fig.dataset.state)) return;
+    setState(p, 'queued');
+    queue.push(p);
+    pump();
+  }
+  async function pump() {
+    if (busy) return;
+    busy = true;
+    while (queue.length) {
+      const p = queue.shift();
+      if (p.fig.isConnected) await process(p);
+    }
+    busy = false;
+  }
+
+  /* ---------- çizim */
+  function mountPage(p, before) {
+    const fig = document.createElement('figure');
+    fig.className = 'page';
+    fig._p = p;
+    p.fig = fig;
+    const img = new Image();
+    img.alt = p.sample ? 'Örnek çizgi roman sayfası' : 'Çizgi roman sayfası';
+    img.decoding = 'async';
+    img.src = p.url;
+    const layer = document.createElement('div');
+    layer.className = 'layer';
+    const tag = document.createElement('button');
+    tag.type = 'button';
+    tag.className = 'tag';
+    fig.append(img, layer, tag);
+    if (p.sample) {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = 'Örnek';
+      fig.append(b);
+    }
+    before ? el.reader.insertBefore(fig, before) : el.reader.append(fig);
+    ro.observe(fig);
+    refresh(p);
+  }
+
+  function draw(p) {
+    const layer = p.fig.querySelector('.layer');
+    layer.textContent = '';
+    const trs = p.tr[pair()] || [];
+    p.ocr.bubbles.forEach((b, i) => {
+      // Kutu yazının etrafında; orijinal harfleri tam örtmek için biraz genişlet
+      const px = Math.max(0.008, b.w * 0.07), py = Math.max(0.004, b.h * 0.12);
+      const x = Math.max(0, b.x - px), y = Math.max(0, b.y - py);
+      const w = Math.min(1 - x, b.w + px * 2), h = Math.min(1 - y, b.h + py * 2);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bubble' + (trs[i] ? '' : ' pending');
+      btn.dataset.i = i;
+      btn.style.cssText = `left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%;animation-delay:${i * 40}ms`;
+      btn.setAttribute('aria-label', 'Çeviri: ' + (trs[i] || b.text));
+      const span = document.createElement('span');
+      span.textContent = trs[i] || b.text;
+      btn.append(span);
+      layer.append(btn);
+    });
+    fit(p.fig);
+  }
+
+  // Yazıyı kutuya sığan en büyük puntoyla yerleştir
+  function fit(fig) {
+    fig.querySelectorAll('.bubble').forEach((btn) => {
+      const span = btn.firstChild;
+      const maxH = btn.clientHeight - 4, maxW = btn.clientWidth - 8;
+      if (maxH <= 0 || maxW <= 0) return;
+      let lo = 7, hi = 46;
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        btn.style.fontSize = mid + 'px';
+        if (span.offsetHeight <= maxH && span.scrollWidth <= maxW) lo = mid; else hi = mid - 1;
+      }
+      btn.style.fontSize = lo + 'px';
+    });
+  }
+  const ro = new ResizeObserver((entries) => {
+    for (const en of entries) if (en.target.dataset.state === 'done') fit(en.target);
+  });
+
+  /* ---------- dokunma */
+  el.reader.addEventListener('click', (e) => {
+    const bub = e.target.closest('.bubble');
+    if (bub) return openSheet(bub);
+    const fig = e.target.closest('.page');
+    if (!fig) return;
+    const s = fig.dataset.state;
+    if (s === 'idle' || s === 'error') enqueue(fig._p);
+    else if (s === 'done' && settings.layer) fig.classList.toggle('peek');
+  });
+
+  /* ---------- alt kart: çeviri, düzeltme, Google Çeviri bağlantısı */
+  let cur = null;
+  function googleLink(text) {
+    const sl = SRC[settings.src].mt.split('-')[0] === 'zh' ? 'zh-CN' : SRC[settings.src].mt;
+    return 'https://translate.google.com/?' + new URLSearchParams({ sl, tl: DST[settings.dst], text, op: 'translate' });
+  }
+  function openSheet(btn) {
+    const p = btn.closest('.page')._p, i = +btn.dataset.i;
+    cur = { p, i, btn };
+    const b = p.ocr.bubbles[i];
+    el.tr.textContent = (p.tr[pair()] || [])[i] || '—';
+    el.text.value = b.text;
+    el.google.href = googleLink(b.text);
+    el.redo.hidden = p.sample;
+    el.del.hidden = p.sample;
+    el.text.readOnly = !!p.sample;
+    el.sheet.hidden = false;
+    void el.sheet.offsetHeight;
+    el.sheet.classList.add('open');
+    el.close.focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    if (el.sheet.hidden) return;
+    el.sheet.classList.remove('open');
+    setTimeout(() => { el.sheet.hidden = true; }, 340);
+    el.text.blur();
+    cur?.btn?.isConnected && cur.btn.focus({ preventScroll: true });
+    cur = null;
+  }
+  el.close.onclick = closeSheet;
+  el.sheet.addEventListener('click', (e) => { if (e.target === el.sheet) closeSheet(); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSheet(); toggleMenu(false); } });
+  el.text.addEventListener('input', () => { el.google.href = googleLink(el.text.value.trim()); });
+
+  el.redo.onclick = async () => {
+    if (!cur) return;
+    const { p, i } = cur;
+    const text = el.text.value.trim();
+    if (!text) return toast('Önce metni yaz.');
+    p.ocr.bubbles[i].text = text;
+    for (const k of Object.keys(p.tr)) if (p.tr[k]) p.tr[k][i] = null; // eski çeviriler geçersiz
+    el.tr.textContent = 'Çevriliyor…';
+    el.redo.disabled = true;
+    try {
+      const lp = pair();
+      (p.tr[lp] ||= new Array(p.ocr.bubbles.length).fill(null))[i] = await translateText(text, lp);
+      el.tr.textContent = p.tr[lp][i];
+      store.put(p);
+      refresh(p);
+      cur.btn = p.fig.querySelector(`.bubble[data-i="${i}"]`);
+    } catch (e) {
+      el.tr.textContent = '—';
+      toast(errorText(e));
+    } finally {
+      el.redo.disabled = false;
+    }
+  };
+
+  el.del.onclick = () => {
+    if (!cur) return;
+    const { p, i } = cur;
+    p.ocr.bubbles.splice(i, 1);
+    for (const k of Object.keys(p.tr)) p.tr[k]?.splice(i, 1);
+    store.put(p);
+    closeSheet();
+    refresh(p);
+    toast('Balon kaldırıldı.');
+  };
+
+  el.copy.onclick = () => {
+    const text = el.text.value;
+    const fallback = () => { el.text.focus(); el.text.select(); toast('Metni seçtim, Kopyala’ya dokun.'); };
+    try { navigator.clipboard.writeText(text).then(() => toast('Kopyalandı.'), fallback); }
+    catch { fallback(); }
+  };
+
+  /* ---------- sayfa ekleme */
+  function removeSample() {
+    const s = pages.find((p) => p.sample);
+    if (!s) return;
+    s.fig.remove();
+    URL.revokeObjectURL(s.url);
+    pages = pages.filter((p) => !p.sample);
+  }
+
+  function addFiles(list) {
+    const files = [...list].filter((f) => (f.type || '').startsWith('image/') || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name || ''));
+    if (!files.length) return toast('Görsel seçilmedi.');
+    removeSample();
+    el.intro.hidden = true;
+    let order = pages.reduce((m, p) => Math.max(m, p.order), -1) + 1;
+    let first = null;
+    for (const f of files) {
+      const p = {
+        id: (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random(),
+        order: order++, blob: f, url: URL.createObjectURL(f), ocr: null, tr: {},
+      };
+      pages.push(p);
+      mountPage(p);
+      store.put(p);
+      first ||= p;
+    }
+    first.fig.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast(files.length + ' sayfa eklendi. Çevirmek için sayfaya dokun.');
+  }
+  el.file.addEventListener('change', () => { if (el.file.files.length) addFiles(el.file.files); el.file.value = ''; });
+  addEventListener('paste', (e) => { const f = e.clipboardData?.files; if (f && f.length) addFiles(f); });
+  addEventListener('dragover', (e) => e.preventDefault());
+  addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer?.files.length) addFiles(e.dataTransfer.files); });
+
+  /* ---------- ayarlar */
+  function toggleMenu(open = el.menu.hidden) {
+    el.menu.hidden = !open;
+    el.menuBtn.setAttribute('aria-expanded', String(open));
+    if (!open) disarm();
+  }
+  el.menuBtn.onclick = () => toggleMenu();
+  document.addEventListener('click', (e) => {
+    if (!el.menu.hidden && !el.menu.contains(e.target) && !el.menuBtn.contains(e.target)) toggleMenu(false);
+  });
+  el.src.onchange = () => { settings.src = el.src.value; ls.set('src', settings.src); pages.forEach((p) => p.sample || refresh(p)); };
+  el.dst.onchange = () => { settings.dst = el.dst.value; ls.set('dst', settings.dst); pages.forEach((p) => p.sample || refresh(p)); };
+  el.layer.onchange = () => {
+    settings.layer = el.layer.checked;
+    ls.set('layer', settings.layer);
+    document.body.classList.toggle('layer-off', !settings.layer);
+    document.querySelectorAll('.page.peek').forEach((f) => f.classList.remove('peek'));
+  };
+  el.email.onchange = () => { settings.email = el.email.value.trim(); ls.set('email', settings.email); };
+
+  let armT;
+  function disarm() { el.clear.classList.remove('armed'); el.clear.textContent = 'Tüm sayfaları kaldır'; clearTimeout(armT); }
+  el.clear.onclick = async () => {
+    if (!el.clear.classList.contains('armed')) {
+      el.clear.classList.add('armed');
+      el.clear.textContent = 'Eminsen tekrar dokun';
+      armT = setTimeout(disarm, 4000);
+      return;
+    }
+    disarm();
+    toggleMenu(false);
+    queue.length = 0;
+    pages.forEach((p) => { p.fig.remove(); URL.revokeObjectURL(p.url); });
+    pages = [];
+    await store.clear();
+    el.intro.hidden = false;
+    makeSamplePage();
+    scrollTo({ top: 0 });
+    toast('Sayfalar kaldırıldı.');
+  };
+
+  let lastY = scrollY;
+  addEventListener('scroll', () => {
+    const y = scrollY;
+    el.bar.classList.toggle('hide', y > lastY && y > 160 && el.menu.hidden);
+    lastY = y;
+  }, { passive: true });
+
+  /* ---------- örnek sayfa: ne yaptığını gösterir; taranmış ve çevrilmiş olarak gelir */
+  function drawSample() {
+    const W = 900, H = 1240;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    g.fillStyle = '#f4f1ea'; g.fillRect(0, 0, W, H);
+    const dots = (x, y, w, h, col) => {
+      g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+      g.fillStyle = col;
+      for (let yy = y; yy < y + h; yy += 14) for (let xx = x + ((yy / 14) % 2) * 7; xx < x + w; xx += 14) { g.beginPath(); g.arc(xx, yy, 3.2, 0, 7); g.fill(); }
+      g.restore();
+    };
+    const panel = (x, y, w, h) => { g.lineWidth = 7; g.strokeStyle = '#151515'; g.strokeRect(x, y, w, h); };
+    g.fillStyle = '#cfd8e3'; g.fillRect(40, 40, 820, 540); dots(40, 40, 820, 540, '#b6c3d2');
+    g.fillStyle = '#5b4636'; g.fillRect(560, 170, 200, 410);
+    g.fillStyle = '#e8c35a'; g.beginPath(); g.arc(735, 380, 10, 0, 7); g.fill();
+    g.fillStyle = '#151515'; g.beginPath(); g.arc(240, 400, 52, 0, 7); g.fill(); g.fillRect(196, 450, 88, 130);
+    panel(40, 40, 820, 540);
+    g.fillStyle = '#f0d3c4'; g.fillRect(40, 620, 820, 580); dots(40, 620, 820, 580, '#e3b9a3');
+    g.fillStyle = '#151515'; g.beginPath(); g.arc(640, 960, 70, 0, 7); g.fill(); g.fillRect(580, 1030, 120, 170);
+    panel(40, 620, 820, 580);
+    g.fillStyle = '#fff6c9'; g.fillRect(70, 70, 330, 64); g.lineWidth = 4; g.strokeRect(70, 70, 330, 64);
+    const balloon = (cx, cy, rx, ry, tx, ty) => {
+      g.fillStyle = '#fff'; g.strokeStyle = '#151515'; g.lineWidth = 5;
+      g.beginPath(); g.moveTo(cx - 30, cy + ry - 14); g.lineTo(tx, ty); g.lineTo(cx + 24, cy + ry - 8); g.closePath(); g.fill(); g.stroke();
+      g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, 7); g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(cx - 27, cy + ry - 16); g.lineTo(cx + 20, cy + ry - 11); g.lineTo(cx - 4, cy + ry - 26); g.fill();
+    };
+    balloon(330, 250, 210, 88, 260, 345);
+    balloon(330, 800, 210, 88, 570, 920);
+    g.fillStyle = '#151515'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = 'bold 30px "Chalkboard SE","Comic Sans MS",sans-serif';
+    g.fillText('THE NEXT MORNING...', 235, 103);
+    g.font = 'bold 36px "Chalkboard SE","Comic Sans MS",sans-serif';
+    g.fillText("WAIT! YOU CAN'T", 330, 232); g.fillText('GO IN THERE!', 330, 274);
+    g.fillText('OH YEAH?', 330, 782); g.fillText('WATCH ME.', 330, 824);
+    return { c, W, H };
+  }
+
+  function makeSamplePage() {
+    const { c, W, H } = drawSample();
+    const bubbles = [
+      { x: 95 / W, y: 85 / H, w: 280 / W, h: 38 / H, text: 'The next morning...' },
+      { x: 180 / W, y: 212 / H, w: 300 / W, h: 82 / H, text: "Wait! You can't go in there!" },
+      { x: 220 / W, y: 762 / H, w: 220 / W, h: 82 / H, text: 'Oh yeah? Watch me.' },
+    ];
+    c.toBlob((blob) => {
+      if (!blob) return;
+      const p = {
+        id: 'sample', order: -1, blob, url: URL.createObjectURL(blob), sample: true,
+        ocr: { src: settings.src, bubbles },
+        tr: { [pair()]: ['Ertesi sabah...', 'Dur! Oraya giremezsin!', 'Öyle mi? İzle de gör.'] },
+      };
+      // örnek her dil ayarında Türkçe örneğiyle görünsün
+      Object.defineProperty(p, 'ocr', { get: () => ({ src: settings.src, bubbles }) });
+      Object.defineProperty(p, 'tr', { get: () => ({ [pair()]: ['Ertesi sabah...', 'Dur! Oraya giremezsin!', 'Öyle mi? İzle de gör.'] }) });
+      pages.unshift(p);
+      mountPage(p, el.reader.firstChild);
+    }, 'image/png');
+  }
+
+  /* ---------- açılış */
+  (async () => {
+    const saved = (await store.all()) || [];
+    if (saved.length) {
+      el.intro.hidden = true;
+      saved.sort((a, b) => a.order - b.order).forEach((s) => {
+        const p = { id: s.id, order: s.order, blob: s.blob, url: URL.createObjectURL(s.blob), ocr: s.ocr || null, tr: s.tr || {} };
+        pages.push(p);
+        mountPage(p);
+      });
+    } else {
+      makeSamplePage();
+    }
+  })();
+})();
+</script>
+</body>
+</html>
