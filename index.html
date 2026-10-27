@@ -116,6 +116,10 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
 .card-src{display:block;width:100%;margin-top:6px;padding:10px 12px;min-height:64px;resize:vertical;border:1px solid #d3ccbd;border-radius:12px;background:#fbf9f3;color:var(--ink);font-size:16px;line-height:1.4}
 .card-links{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:14px}
 .card-links a,.card-links button{padding:4px 0;border:0;background:none;color:#4a4639;text-decoration:underline;text-underline-offset:3px}
+.setup-lede{margin:10px 0 0;font-size:15px;line-height:1.45;color:#4a4639}
+.setup-steps{display:grid;gap:6px;margin:8px 0 0;padding-left:20px;font-size:15px;line-height:1.4}
+.setup-steps b{font-weight:600}
+#setup-code{font-family:ui-monospace,Menlo,monospace;font-size:12px;word-break:break-all}
 .card-actions{display:flex;gap:8px;margin-top:18px}
 .card-actions button{flex:1;min-height:48px;border:1px solid #d3ccbd;border-radius:12px;background:none;color:var(--ink);font-size:15px;font-weight:600}
 .card-actions .primary{border-color:var(--ink);background:var(--ink);color:var(--paper)}
@@ -171,7 +175,32 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="ornek@mail.com">
     <small>Çeviri servisi MyMemory, e-posta yazarsan günlük ücretsiz çeviri limitini 5.000 karakterden 50.000 karaktere çıkarır.</small>
   </label>
+  <button class="danger" id="setup-btn" type="button" style="color:var(--paper)">Link açılmayan sitelerde kullan</button>
   <button class="danger" id="clear" type="button">Eklenen fotoğrafları kaldır</button>
+</div>
+
+<div class="sheet" id="setup" role="dialog" aria-modal="true" aria-labelledby="setup-title" hidden>
+  <div class="card">
+    <p class="card-tr" id="setup-title">Balon yer imi</p>
+    <p class="setup-lede">Link ile açılmayan sitelerde (ör. Manta) bölümü kendi sitesinde açarsın, yer imine dokunursun. O an ekranda yüklü olan sayfalar Balon'a aktarılır.</p>
+    <p class="card-label">Bir kere kur</p>
+    <ol class="setup-steps">
+      <li>Aşağıdaki <b>Kodu kopyala</b>'ya dokun.</li>
+      <li>Safari'de Paylaş → <b>Yer İşareti Ekle</b> → adını <b>Balon</b> yap → Kaydet.</li>
+      <li>Yer İşaretleri → <b>Düzenle</b> → Balon → adres satırını sil, kopyaladığın kodu yapıştır.</li>
+    </ol>
+    <p class="card-label">Her bölümde</p>
+    <ol class="setup-steps">
+      <li>Bölümü kendi sitesinde aç ve <b>sonuna kadar kaydır</b> (sayfalar yüklensin).</li>
+      <li>Adres çubuğuna <b>Balon</b> yaz, çıkan yer imine dokun.</li>
+    </ol>
+    <label class="card-label" for="setup-code">Yer imi kodu</label>
+    <textarea class="card-src" id="setup-code" rows="3" readonly spellcheck="false"></textarea>
+    <div class="card-actions">
+      <button type="button" id="setup-copy">Kodu kopyala</button>
+      <button type="button" class="primary" id="setup-close">Kapat</button>
+    </div>
+  </div>
 </div>
 
 <section class="intro" id="intro">
@@ -294,7 +323,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       all: () => run('readonly', (s) => s.getAll()),
       get: (id) => run('readonly', (s) => s.get(id)),
       put: (p) => {
-        if (p.sample) return null;
+        if (p.sample || p.transient) return null;
         const row = p.remote
           ? { id: p.id, remote: true, ocr: p.ocr, tr: p.tr }
           : { id: p.id, order: p.order, blob: p.blob, ocr: p.ocr, tr: p.tr };
@@ -319,7 +348,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       const j = await r.json().catch(() => null);
       if (!j) throw new Error('Link ile açma bu adreste çalışmıyor. Siteyi Vercel adresinden aç ya da fotoğraf ekle.');
       if (!r.ok) throw new Error(j.detail || 'Bölüm açılamadı.');
-      chapter = j;
+      chapter = { ...j, items: j.images.map((u) => ({ u })) };
       el.url.value = url;
       ls.set('last', { url, title: j.title });
       await renderChapter();
@@ -341,18 +370,21 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     const t = document.createElement('strong');
     t.textContent = chapter.title;
     const n = document.createElement('span');
-    n.textContent = chapter.images.length + ' sayfa';
+    n.textContent = chapter.items.length + ' sayfa';
     meta.append(t, n);
     el.reader.append(meta);
 
-    const saved = await Promise.all(chapter.images.map((s) => store.get('u:' + s)));
-    chapter.images.forEach((src, i) => {
+    // u: görsel adresi (sunucu üzerinden gelir) · b: yer iminin aktardığı görsel verisi (telefonda kalır)
+    const saved = await Promise.all(chapter.items.map((it) => (it.u ? store.get('u:' + it.u) : null)));
+    chapter.items.forEach((it, i) => {
       const s = saved[i];
-      const p = {
-        id: 'u:' + src, remote: true,
-        url: 'api/img?src=' + encodeURIComponent(src) + '&ref=' + encodeURIComponent(chapter.referer),
-        ocr: s?.ocr || null, tr: s?.tr || {}, lazy: i > 2,
-      };
+      const p = it.u
+        ? {
+            id: 'u:' + it.u, remote: true,
+            url: 'api/img?src=' + encodeURIComponent(it.u) + '&ref=' + encodeURIComponent(chapter.referer),
+            ocr: s?.ocr || null, tr: s?.tr || {}, lazy: i > 2,
+          }
+        : { id: 'b:' + i, remote: true, transient: true, blob: it.b, url: URL.createObjectURL(it.b), ocr: null, tr: {} };
       pages.push(p);
       mountPage(p);
     });
@@ -1027,9 +1059,134 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     }, 'image/png');
   }
 
-  /* ---------- açılış: ?u=<link> ile doğrudan bölüm açılabilir */
+  /* ================================================ YER İMİ (link açılmayan siteler) */
+  // Bu fonksiyon yer imine dönüştürülür ve okunan sitenin içinde, kullanıcının kendi tarayıcısında çalışır.
+  // Ekranda yüklü büyük görselleri sırasıyla toplar: normal adresleri Balon'a link olarak, tarayıcıda
+  // üretilmiş görselleri (blob/canvas) veri olarak aktarır.
+  function bookmarklet(B) {
+    (async () => {
+      const O = new URL(B).origin;
+      const els = [...document.querySelectorAll('img,canvas')].filter((e) => {
+        const w = e.tagName === 'IMG' ? e.naturalWidth : e.width;
+        const h = e.tagName === 'IMG' ? e.naturalHeight : e.height;
+        return w >= 300 && h >= 150;
+      });
+      if (!els.length) { alert('Balon: bu sayfada yüklenmiş çizgi roman görseli yok. Bölümü sonuna kadar kaydırıp tekrar dene.'); return; }
+      const toBlob = (c) => new Promise((r) => { try { c.toBlob((b) => r(b), 'image/jpeg', 0.92); } catch (e) { r(null); } });
+      const seen = new Set(), items = [];
+      let skipped = 0;
+      for (const e of els) {
+        if (e.tagName === 'IMG') {
+          const u = e.currentSrc || e.src;
+          if (!u || seen.has(u)) continue;
+          seen.add(u);
+          if (/^https?:/.test(u)) { items.push({ u }); continue; }
+          const c = document.createElement('canvas');
+          c.width = e.naturalWidth; c.height = e.naturalHeight;
+          c.getContext('2d').drawImage(e, 0, 0);
+          const b = await toBlob(c);
+          b ? items.push({ b }) : skipped++;
+        } else {
+          const b = await toBlob(e);
+          b ? items.push({ b }) : skipped++;
+        }
+      }
+      if (!items.length) { alert('Balon: bu sitedeki görseller aktarılamadı.'); return; }
+      const meta = { r: location.href, t: document.title };
+      if (items.every((x) => x.u)) {
+        const url = B + '#b=' + encodeURIComponent(JSON.stringify({ ...meta, i: items.map((x) => x.u) }));
+        if (!window.open(url, '_blank')) location.href = url;
+        return;
+      }
+      const w = window.open(B + '#al', '_blank');
+      if (!w) { alert('Balon: yeni sekme açılamadı. Safari ayarlarında açılır pencere engelini kapatıp tekrar dene.'); return; }
+      const on = (ev) => {
+        if (ev.origin !== O || ev.data !== 'balon-ready') return;
+        removeEventListener('message', on);
+        w.postMessage({ balon: { ...meta, items, skipped } }, O);
+      };
+      addEventListener('message', on);
+    })();
+  }
+  const bookmarkletCode = () => 'javascript:' + encodeURIComponent('(' + bookmarklet.toString().replace(/\s+/g, ' ') + ')(' + JSON.stringify(location.origin + location.pathname) + ')');
+
+  function openImported(d) {
+    const items = (d.items || []).filter((x) => (x.u && /^https?:\/\//.test(x.u)) || x.b instanceof Blob);
+    if (!items.length) return toast('Aktarılacak görsel bulunamadı.');
+    let host = '';
+    try { host = new URL(d.r).host; } catch {}
+    clearReader();
+    view = 'chapter';
+    el.intro.hidden = true;
+    chapter = { title: String(d.t || host || 'Aktarılan bölüm').slice(0, 120), referer: d.r || '', items };
+    renderChapter();
+    if (d.skipped) toast(d.skipped + ' görsel site koruması nedeniyle aktarılamadı.');
+  }
+
+  function receiveFromOpener() {
+    el.intro.hidden = true;
+    el.reader.innerHTML = '<div class="spin"><i></i>Sayfalar aktarılıyor…</div>';
+    const src = window.opener;
+    let done = false;
+    const fail = () => {
+      if (done) return;
+      done = true;
+      clearInterval(ping);
+      el.reader.textContent = '';
+      showUploads();
+      toast('Bu site Balon’a sayfa aktarmayı engelliyor. Ekran görüntüsü ekleyerek okuyabilirsin.');
+    };
+    if (!src) return fail();
+    addEventListener('message', function on(e) {
+      if (e.source !== src || !e.data?.balon) return;
+      done = true;
+      clearInterval(ping);
+      removeEventListener('message', on);
+      openImported(e.data.balon);
+    });
+    // "hazırım" sinyali; okunan sitenin adresini bilmediğimiz için hedef '*', içerik zararsız bir metin
+    const ping = setInterval(() => { try { src.postMessage('balon-ready', '*'); } catch {} }, 300);
+    setTimeout(fail, 12000);
+  }
+
+  el.setupBtn = $('#setup-btn');
+  el.setup = $('#setup');
+  el.setupCode = $('#setup-code');
+  el.setupBtn.onclick = () => {
+    toggleMenu(false);
+    el.setupCode.value = bookmarkletCode();
+    el.setup.hidden = false;
+    void el.setup.offsetHeight;
+    el.setup.classList.add('open');
+    $('#setup-copy').focus({ preventScroll: true });
+  };
+  const closeSetup = () => {
+    if (el.setup.hidden) return;
+    el.setup.classList.remove('open');
+    setTimeout(() => { el.setup.hidden = true; }, 340);
+  };
+  $('#setup-close').onclick = closeSetup;
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSetup(); });
+  el.setup.addEventListener('click', (e) => { if (e.target === el.setup) closeSetup(); });
+  $('#setup-copy').onclick = () => {
+    const fallback = () => { el.setupCode.focus(); el.setupCode.select(); toast('Kodu seçtim, Kopyala’ya dokun.'); };
+    try { navigator.clipboard.writeText(el.setupCode.value).then(() => toast('Kod kopyalandı. Şimdi bu sayfayı yer imlerine ekle.'), fallback); }
+    catch { fallback(); }
+  };
+
+  /* ---------- açılış: ?u=<link> bölüm açar, #b= / #al yer iminden gelir */
+  const hash = location.hash;
   const direct = new URLSearchParams(location.search).get('u');
-  if (direct) { el.url.value = direct; openChapter(direct); }
+  if (hash.startsWith('#b=') || hash === '#al') {
+    history.replaceState(null, '', location.pathname + location.search);
+    if (hash === '#al') receiveFromOpener();
+    else {
+      let d = null;
+      try { d = JSON.parse(decodeURIComponent(hash.slice(3))); } catch {}
+      if (d && Array.isArray(d.i)) openImported({ r: d.r, t: d.t, items: d.i.map((u) => ({ u })) });
+      else { toast('Yer iminden gelen bilgi okunamadı.'); showUploads(); }
+    }
+  } else if (direct) { el.url.value = direct; openChapter(direct); }
   else showUploads();
 })();
 </script>
