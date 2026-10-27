@@ -322,7 +322,10 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       chapter = j;
       el.url.value = url;
       ls.set('last', { url, title: j.title });
-      renderChapter();
+      await renderChapter();
+      if (j.images.length < 3) {
+        toast('Bu sayfada sadece ' + j.images.length + ' görsel bulundu. Site sayfaları sonradan yüklüyor olabilir; bu sitede fotoğraf ekleyerek okuyabilirsin.');
+      }
     } catch (e) {
       el.reader.textContent = '';
       view = 'uploads';
