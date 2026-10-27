@@ -38,14 +38,17 @@ button{cursor:pointer}
 /* ---------- üst çubuk */
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:8px;padding-block:10px 14px;padding-left:var(--gl);padding-right:var(--gr);background:linear-gradient(var(--ink) 74%,transparent);transition:transform .3s var(--ease)}
 .bar.hide{transform:translateY(-120%)}
-.mark{flex:1;min-width:0;font-weight:800;font-size:22px;letter-spacing:-.04em}
-.mark i{font-style:normal;color:var(--accent)}
-.add{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer;transition:transform .15s}
-.add:active{transform:scale(.95)}
-.icon-btn{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--ink-2)}
+.go{flex:1;display:flex;align-items:center;min-width:0;padding:4px 4px 4px 14px;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;transition:border-color .2s}
+.go:focus-within{border-color:var(--accent)}
+.go input{flex:1;min-width:0;padding:9px 0;background:none;border:0;outline:none;font-size:16px}
+.go input::placeholder{color:var(--mute)}
+.go-btn{flex:none;display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:10px;background:var(--accent);color:var(--ink);transition:transform .15s}
+.go-btn:active{transform:scale(.92)}
+.icon-btn{flex:none;display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);cursor:pointer}
 .icon-btn[aria-expanded=true]{border-color:var(--accent)}
+.icon-btn:has(+ input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
 
-.menu{position:fixed;z-index:25;top:calc(64px + env(safe-area-inset-top,0px));right:var(--gr);width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 90px);overflow:auto;padding:6px;background:var(--ink-2);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 48px rgba(0,0,0,.5);animation:drop .2s var(--ease)}
+.menu{position:fixed;z-index:25;top:calc(70px + env(safe-area-inset-top,0px));right:var(--gr);width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 96px);overflow:auto;padding:6px;background:var(--ink-2);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 48px rgba(0,0,0,.5);animation:drop .2s var(--ease)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:52px;padding:0 12px;font-size:15px}
 .row + .row,.row + .field,.field + .row{border-top:1px solid var(--line)}
 .row select{max-width:52%;padding:6px 8px;background:var(--ink);border:1px solid var(--line);border-radius:8px}
@@ -69,16 +72,23 @@ button{cursor:pointer}
 .steps li::before{content:counter(s);font-size:13px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
 .note{margin:0;max-width:56ch;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;font-size:14px;color:var(--mute)}
 .note b{color:var(--paper);font-weight:600}
+.resume{justify-self:start;display:flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);text-align:left}
+.resume small{color:var(--accent);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.resume span{max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 
 /* ---------- okuyucu */
 .reader{max-width:760px;margin:0 auto;padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
-.page{position:relative;margin:0;background:var(--ink-2);line-height:0;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.meta{display:flex;justify-content:space-between;gap:16px;padding-block:2px 12px;padding-left:var(--gl);padding-right:var(--gr);font-size:13px;color:var(--mute)}
+.meta strong{min-width:0;overflow:hidden;font-weight:600;color:var(--paper);white-space:nowrap;text-overflow:ellipsis}
+.meta span{flex:none;font-variant-numeric:tabular-nums}
+.page{position:relative;margin:0;min-height:40vh;background:var(--ink-2);line-height:0;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.page.loaded{min-height:0;background:none}
 .page + .page{margin-top:2px}
 .page img{display:block;width:100%;height:auto;-webkit-user-drag:none}
 .layer{position:absolute;inset:0}
 .tag{position:absolute;top:10px;right:max(10px,env(safe-area-inset-right,0px));padding:9px 13px;border:0;border-radius:99px;background:rgba(18,19,28,.76);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:12px;font-weight:600;line-height:1;letter-spacing:.06em;text-transform:uppercase;font-variant-numeric:tabular-nums;transition:opacity .25s,background .25s}
 .page[data-state=queued] .tag,.page[data-state=busy] .tag{background:var(--paper);color:var(--ink)}
-.page[data-state=error] .tag{background:var(--accent);color:var(--ink)}
+.page[data-state=error] .tag,.page[data-state=broken] .tag{background:var(--accent);color:var(--ink)}
 .page[data-state=done] .tag{opacity:0;visibility:hidden}
 .badge{position:absolute;bottom:10px;left:max(10px,env(safe-area-inset-left,0px));padding:7px 10px;border-radius:6px;background:var(--accent);color:var(--ink);font-size:11px;font-weight:800;line-height:1;letter-spacing:.12em;text-transform:uppercase}
 .page[data-state=busy]::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent 42%,rgba(255,210,63,.28) 50%,transparent 58%);animation:scan 1.7s linear infinite}
@@ -88,6 +98,13 @@ button{cursor:pointer}
 .bubble:active{filter:brightness(.93)}
 .bubble.pending span{opacity:.35}
 body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transparent;box-shadow:inset 0 0 0 2px rgba(255,210,63,.9)}
+
+.nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-block:22px 0;padding-left:var(--gl);padding-right:var(--gr)}
+.nav button{min-height:54px;padding:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);font-weight:600}
+.nav .next{grid-column:2;border-color:var(--accent);background:var(--accent);color:var(--ink)}
+
+.spin{display:flex;align-items:center;gap:10px;padding-block:18vh;padding-left:var(--gl);padding-right:var(--gr);color:var(--mute)}
+.spin i{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite}
 
 /* ---------- alt kart */
 .sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;background:rgba(0,0,0,.5);opacity:0;transition:opacity .25s}
@@ -109,16 +126,23 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
 @keyframes scan{from{transform:translateY(-55%)}to{transform:translateY(55%)}}
 @keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
 @keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes pulse{50%{transform:scale(.5);opacity:.4}}
 @media (prefers-reduced-motion:reduce){*,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 
 <header class="bar" id="bar">
-  <div class="mark" aria-hidden="true">Bal<i>o</i>n</div>
-  <label class="add" for="file">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    Sayfa ekle
+  <form class="go" id="go" autocomplete="off">
+    <label class="sr" for="url">Bölüm linki</label>
+    <input id="url" type="url" inputmode="url" enterkeyhint="go" placeholder="Bölüm linkini yapıştır" required>
+    <button class="go-btn" type="submit" aria-label="Bölümü aç">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </form>
+  <label class="icon-btn" for="file" title="Ekran görüntüsü ekle">
+    <span class="sr">Ekran görüntüsü ekle</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>
   </label>
   <input class="sr" id="file" type="file" accept="image/*" multiple>
   <button class="icon-btn" id="menu-btn" type="button" aria-label="Ayarlar" aria-expanded="false" aria-controls="menu">
@@ -141,23 +165,24 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   <label class="row" for="dst">Çeviri dili
     <select id="dst"><option value="tr">Türkçe</option><option value="en">İngilizce</option><option value="de">Almanca</option></select>
   </label>
+  <label class="row" for="auto">Kaydırdıkça otomatik çevir <input class="switch" id="auto" type="checkbox" role="switch"></label>
   <label class="row" for="layer">Çeviriyi balonun üstüne yaz <input class="switch" id="layer" type="checkbox" role="switch" checked></label>
   <label class="field" for="email">E-posta (isteğe bağlı)
     <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="ornek@mail.com">
     <small>Çeviri servisi MyMemory, e-posta yazarsan günlük ücretsiz çeviri limitini 5.000 karakterden 50.000 karaktere çıkarır.</small>
   </label>
-  <button class="danger" id="clear" type="button">Tüm sayfaları kaldır</button>
+  <button class="danger" id="clear" type="button">Eklenen fotoğrafları kaldır</button>
 </div>
 
 <section class="intro" id="intro">
   <h1>Çizgi romanı <em>kendi dilinde</em> oku.</h1>
   <ol class="steps">
-    <li>Okuduğun sitede sayfaların ekran görüntüsünü al.</li>
-    <li>“Sayfa ekle”ye dokun, Fotoğraflar'dan seç.</li>
-    <li>Sayfaya dokun: yazılar telefonunda taranır, sonra çevrilir.</li>
+    <li>Okuduğun sitedeki bölüm linkini yukarı yapıştır.</li>
+    <li>Sayfalar burada açılır. Bir sayfaya dokun, yazılar taranıp çevrilsin.</li>
     <li>Balona dokun: aslını gör, yanlış okunduysa düzelt.</li>
   </ol>
-  <p class="note"><b>Nasıl çalışır?</b> Yazı tanıma telefonunda yapılır, ilk taramada dil dosyası bir kez indirilir. Çeviri ücretsiz MyMemory servisiyle yapılır, servise sadece balon metinleri gider. Sayfalar bu telefonda kalır.</p>
+  <button class="resume" id="resume" type="button" hidden><small>Kaldığın yer</small><span id="resume-title"></span></button>
+  <p class="note"><b>Link açılmazsa</b> (bazı siteler bot koruması kullanır) sağ üstteki fotoğraf düğmesiyle ekran görüntüsü ekleyebilirsin. Yazı tanıma telefonunda yapılır, çeviriye sadece balon metinleri gider.</p>
 </section>
 
 <main class="reader" id="reader"></main>
@@ -191,8 +216,9 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     set(k, v) { try { localStorage.setItem('balon.' + k, JSON.stringify(v)); } catch {} },
   };
   const el = {
-    bar: $('#bar'), file: $('#file'), reader: $('#reader'), intro: $('#intro'),
-    menuBtn: $('#menu-btn'), menu: $('#menu'), src: $('#src'), dst: $('#dst'), layer: $('#layer'), email: $('#email'), clear: $('#clear'),
+    bar: $('#bar'), form: $('#go'), url: $('#url'), file: $('#file'), reader: $('#reader'), intro: $('#intro'),
+    resume: $('#resume'), resumeTitle: $('#resume-title'),
+    menuBtn: $('#menu-btn'), menu: $('#menu'), src: $('#src'), dst: $('#dst'), auto: $('#auto'), layer: $('#layer'), email: $('#email'), clear: $('#clear'),
     sheet: $('#sheet'), tr: $('#card-tr'), text: $('#card-src'), redo: $('#card-redo'), google: $('#card-google'), del: $('#card-del'),
     copy: $('#card-copy'), close: $('#card-close'), toast: $('#toast'),
   };
@@ -209,10 +235,14 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   };
   const DST = { tr: 'tr', en: 'en', de: 'de' };
 
-  const settings = { src: ls.get('src', 'en'), dst: ls.get('dst', 'tr'), layer: ls.get('layer', true), email: ls.get('email', '') };
+  const settings = {
+    src: ls.get('src', 'en'), dst: ls.get('dst', 'tr'), auto: ls.get('auto', false),
+    layer: ls.get('layer', true), email: ls.get('email', ''),
+  };
   if (!SRC[settings.src]) settings.src = 'en';
   el.src.value = settings.src;
   el.dst.value = settings.dst;
+  el.auto.checked = settings.auto;
   el.layer.checked = settings.layer;
   el.email.value = settings.email;
   document.body.classList.toggle('layer-off', !settings.layer);
@@ -220,11 +250,14 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   const pair = () => SRC[settings.src].mt + '|' + DST[settings.dst];
 
   /**
-   * Sayfa: blob + tarama sonucu (ocr) + dil çiftine göre çeviriler (tr)
+   * Sayfa: görsel adresi + tarama sonucu (ocr) + dil çiftine göre çeviriler (tr)
    * ocr = { src, bubbles:[{x,y,w,h,text}] }   (koordinatlar sayfaya oranla 0-1)
    * tr  = { "en|tr": ["...", ...] }           (bubbles ile aynı sırada)
+   * Linkten açılan sayfalarda (remote) görsel saklanmaz; sadece tarama ve çeviri saklanır.
    */
   let pages = [];
+  let view = 'uploads'; // 'uploads' | 'chapter'
+  let chapter = null;
 
   /* ---------- toast */
   let toastT;
@@ -259,10 +292,85 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     };
     return {
       all: () => run('readonly', (s) => s.getAll()),
-      put: (p) => p.sample ? null : run('readwrite', (s) => s.put({ id: p.id, order: p.order, blob: p.blob, ocr: p.ocr, tr: p.tr })),
-      clear: () => run('readwrite', (s) => s.clear()),
+      get: (id) => run('readonly', (s) => s.get(id)),
+      put: (p) => {
+        if (p.sample) return null;
+        const row = p.remote
+          ? { id: p.id, remote: true, ocr: p.ocr, tr: p.tr }
+          : { id: p.id, order: p.order, blob: p.blob, ocr: p.ocr, tr: p.tr };
+        return run('readwrite', (s) => s.put(row));
+      },
+      del: (id) => run('readwrite', (s) => s.delete(id)),
     };
   })();
+
+  /* =========================================================== BÖLÜM (LİNK) */
+  async function openChapter(raw) {
+    let url;
+    try { url = new URL(raw.trim()).href; } catch { return toast('Geçerli bir link yapıştır.'); }
+    clearReader();
+    view = 'chapter';
+    el.intro.hidden = true;
+    el.reader.innerHTML = '<div class="spin"><i></i>Bölüm okunuyor…</div>';
+    try {
+      let r;
+      try { r = await fetch('api/chapter?url=' + encodeURIComponent(url)); }
+      catch { throw new Error('İnternet bağlantını kontrol et.'); }
+      const j = await r.json().catch(() => null);
+      if (!j) throw new Error('Link ile açma bu adreste çalışmıyor. Siteyi Vercel adresinden aç ya da fotoğraf ekle.');
+      if (!r.ok) throw new Error(j.detail || 'Bölüm açılamadı.');
+      chapter = j;
+      el.url.value = url;
+      ls.set('last', { url, title: j.title });
+      renderChapter();
+    } catch (e) {
+      el.reader.textContent = '';
+      view = 'uploads';
+      await showUploads();
+      toast(e.message);
+    }
+  }
+
+  async function renderChapter() {
+    clearReader();
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const t = document.createElement('strong');
+    t.textContent = chapter.title;
+    const n = document.createElement('span');
+    n.textContent = chapter.images.length + ' sayfa';
+    meta.append(t, n);
+    el.reader.append(meta);
+
+    const saved = await Promise.all(chapter.images.map((s) => store.get('u:' + s)));
+    chapter.images.forEach((src, i) => {
+      const s = saved[i];
+      const p = {
+        id: 'u:' + src, remote: true,
+        url: 'api/img?src=' + encodeURIComponent(src) + '&ref=' + encodeURIComponent(chapter.referer),
+        ocr: s?.ocr || null, tr: s?.tr || {}, lazy: i > 2,
+      };
+      pages.push(p);
+      mountPage(p);
+    });
+
+    if (chapter.prev || chapter.next) {
+      const nav = document.createElement('nav');
+      nav.className = 'nav';
+      nav.setAttribute('aria-label', 'Bölümler');
+      for (const [k, label] of [['prev', 'Önceki bölüm'], ['next', 'Sonraki bölüm']]) {
+        if (!chapter[k]) continue;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = k;
+        b.textContent = label;
+        b.onclick = () => openChapter(chapter[k]);
+        nav.append(b);
+      }
+      el.reader.append(nav);
+    }
+    scrollTo({ top: 0 });
+  }
 
   /* =========================================================== TARAMA */
   let worker = null, workerLang = null, onProgress = null;
@@ -364,14 +472,13 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     for (const raw of lines) {
       const line = raw.trim();
       if (!t) t = line;
-      else if (/[-‐]$/.test(t) && /^\p{Ll}|^\p{Lu}/u.test(line)) t = t.replace(/[-‐]$/, '') + line;
+      else if (/[-‐]$/.test(t) && /^\p{L}/u.test(line)) t = t.replace(/[-‐]$/, '') + line;
       else t += ' ' + line;
     }
     t = t.replace(/\s+/g, ' ').replace(/\s+([,.!?;:…])/g, '$1').trim();
     const letters = t.replace(/[^\p{L}]/gu, '');
     if (letters.length > 3 && letters === letters.toUpperCase()) {
-      const loc = src === 'en' ? 'en' : src;
-      t = t.toLocaleLowerCase(loc).replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (m, a, b) => a + b.toLocaleUpperCase(loc));
+      t = t.toLocaleLowerCase(src).replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (m, a, b) => a + b.toLocaleUpperCase(src));
       if (src === 'en') t = t.replace(/\bi\b/g, 'I').replace(/\bi'/g, "I'");
     }
     return t;
@@ -470,7 +577,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     return t.value;
   }
 
-  // Balonları en fazla 3'erli gruplar halinde çevir
+  // Balonları üçerli gruplar halinde çevir
   async function translateAll(p, report) {
     const lp = pair();
     const bubbles = p.ocr.bubbles;
@@ -495,7 +602,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   }
 
   /* =========================================================== SAYFA AKIŞI */
-  const LABEL = { idle: 'Çevir', queued: 'Sırada', error: 'Tekrar dene' };
+  const LABEL = { idle: 'Çevir', queued: 'Sırada', error: 'Tekrar dene', broken: 'Görsel yüklenemedi' };
 
   function setState(p, s, label) {
     p.fig.dataset.state = s;
@@ -508,6 +615,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   const hasTr = (p) => hasScan(p) && Array.isArray(p.tr[pair()]) && p.tr[pair()].length === p.ocr.bubbles.length && p.tr[pair()].every(Boolean);
 
   function refresh(p) {
+    if (p.fig.dataset.state === 'broken') return;
     p.fig.classList.remove('peek');
     if (hasTr(p)) { draw(p); setState(p, 'done'); }
     else { p.fig.querySelector('.layer').textContent = ''; setState(p, p.fig.dataset.state === 'error' ? 'error' : 'idle'); }
@@ -531,15 +639,16 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       store.put(p);
       refresh(p);
     } catch (e) {
-      store.put(p);
+      if (p.ocr) store.put(p);
       setState(p, 'error');
       toast(errorText(e));
+      if (e instanceof QuotaError) queue.length = 0;
     }
   }
 
   function errorText(e) {
     if (e instanceof QuotaError) return 'Bugünkü ücretsiz çeviri limiti doldu. Ayarlara e-posta ekleyerek limiti artırabilir ya da yarın devam edebilirsin.';
-    if (e?.message === 'decode') return 'Görsel açılamadı. Başka bir ekran görüntüsü dene.';
+    if (e?.message === 'decode') return 'Görsel açılamadı.';
     if (e?.message === 'ocr_missing') return 'Yazı tanıma yüklenemedi. İnternet bağlantını kontrol edip sayfayı yenile.';
     if (e?.message === 'network') return 'Çeviri servisine ulaşılamadı. İnternet bağlantını kontrol edip tekrar dokun.';
     if (e?.message === 'mt') return 'Çeviri servisi yanıt vermedi. Biraz sonra tekrar dokun.';
@@ -566,6 +675,17 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   }
 
   /* ---------- çizim */
+  function clearReader() {
+    queue.length = 0;
+    for (const p of pages) {
+      io.unobserve(p.fig);
+      ro.unobserve(p.fig);
+      if (p.blob || p.sample) URL.revokeObjectURL(p.url);
+    }
+    pages = [];
+    el.reader.textContent = '';
+  }
+
   function mountPage(p, before) {
     const fig = document.createElement('figure');
     fig.className = 'page';
@@ -574,6 +694,9 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     const img = new Image();
     img.alt = p.sample ? 'Örnek çizgi roman sayfası' : 'Çizgi roman sayfası';
     img.decoding = 'async';
+    if (p.lazy) img.loading = 'lazy';
+    img.onload = () => fig.classList.add('loaded');
+    img.onerror = () => setState(p, 'broken');
     img.src = p.url;
     const layer = document.createElement('div');
     layer.className = 'layer';
@@ -589,6 +712,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     }
     before ? el.reader.insertBefore(fig, before) : el.reader.append(fig);
     ro.observe(fig);
+    if (!p.sample) io.observe(fig);
     refresh(p);
   }
 
@@ -633,6 +757,11 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   const ro = new ResizeObserver((entries) => {
     for (const en of entries) if (en.target.dataset.state === 'done') fit(en.target);
   });
+  // Kaydırdıkça otomatik çeviri: ekrana yaklaşan sayfayı sıraya al
+  const io = new IntersectionObserver((entries) => {
+    if (!settings.auto) return;
+    for (const en of entries) if (en.isIntersecting && en.target.classList.contains('loaded')) enqueue(en.target._p);
+  }, { rootMargin: '600px 0px' });
 
   /* ---------- dokunma */
   el.reader.addEventListener('click', (e) => {
@@ -648,8 +777,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   /* ---------- alt kart: çeviri, düzeltme, Google Çeviri bağlantısı */
   let cur = null;
   function googleLink(text) {
-    const sl = SRC[settings.src].mt.split('-')[0] === 'zh' ? 'zh-CN' : SRC[settings.src].mt;
-    return 'https://translate.google.com/?' + new URLSearchParams({ sl, tl: DST[settings.dst], text, op: 'translate' });
+    return 'https://translate.google.com/?' + new URLSearchParams({ sl: SRC[settings.src].mt, tl: DST[settings.dst], text, op: 'translate' });
   }
   function openSheet(btn) {
     const p = btn.closest('.page')._p, i = +btn.dataset.i;
@@ -658,8 +786,8 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     el.tr.textContent = (p.tr[pair()] || [])[i] || '—';
     el.text.value = b.text;
     el.google.href = googleLink(b.text);
-    el.redo.hidden = p.sample;
-    el.del.hidden = p.sample;
+    el.redo.hidden = !!p.sample;
+    el.del.hidden = !!p.sample;
     el.text.readOnly = !!p.sample;
     el.sheet.hidden = false;
     void el.sheet.offsetHeight;
@@ -671,7 +799,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     el.sheet.classList.remove('open');
     setTimeout(() => { el.sheet.hidden = true; }, 340);
     el.text.blur();
-    cur?.btn?.isConnected && cur.btn.focus({ preventScroll: true });
+    if (cur?.btn?.isConnected) cur.btn.focus({ preventScroll: true });
     cur = null;
   }
   el.close.onclick = closeSheet;
@@ -694,7 +822,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       el.tr.textContent = p.tr[lp][i];
       store.put(p);
       refresh(p);
-      cur.btn = p.fig.querySelector(`.bubble[data-i="${i}"]`);
+      if (cur) cur.btn = p.fig.querySelector(`.bubble[data-i="${i}"]`);
     } catch (e) {
       el.tr.textContent = '—';
       toast(errorText(e));
@@ -721,21 +849,34 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     catch { fallback(); }
   };
 
-  /* ---------- sayfa ekleme */
-  function removeSample() {
-    const s = pages.find((p) => p.sample);
-    if (!s) return;
-    s.fig.remove();
-    URL.revokeObjectURL(s.url);
-    pages = pages.filter((p) => !p.sample);
+  /* ---------- fotoğraf ekleme */
+  async function showUploads() {
+    clearReader();
+    view = 'uploads';
+    chapter = null;
+    const saved = ((await store.all()) || []).filter((s) => !s.remote && s.blob);
+    if (saved.length) {
+      el.intro.hidden = true;
+      saved.sort((a, b) => a.order - b.order).forEach((s) => {
+        const p = { id: s.id, order: s.order, blob: s.blob, url: URL.createObjectURL(s.blob), ocr: s.ocr || null, tr: s.tr || {} };
+        pages.push(p);
+        mountPage(p);
+      });
+    } else {
+      el.intro.hidden = false;
+      showResume();
+      makeSamplePage();
+    }
   }
 
-  function addFiles(list) {
+  async function addFiles(list) {
     const files = [...list].filter((f) => (f.type || '').startsWith('image/') || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name || ''));
     if (!files.length) return toast('Görsel seçilmedi.');
-    removeSample();
+    if (view !== 'uploads') await showUploads();
+    const sample = pages.find((p) => p.sample);
+    if (sample) { sample.fig.remove(); URL.revokeObjectURL(sample.url); pages = pages.filter((p) => !p.sample); }
     el.intro.hidden = true;
-    let order = pages.reduce((m, p) => Math.max(m, p.order), -1) + 1;
+    let order = pages.reduce((m, p) => Math.max(m, p.order ?? -1), -1) + 1;
     let first = null;
     for (const f of files) {
       const p = {
@@ -751,9 +892,27 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     toast(files.length + ' sayfa eklendi. Çevirmek için sayfaya dokun.');
   }
   el.file.addEventListener('change', () => { if (el.file.files.length) addFiles(el.file.files); el.file.value = ''; });
-  addEventListener('paste', (e) => { const f = e.clipboardData?.files; if (f && f.length) addFiles(f); });
+  addEventListener('paste', (e) => {
+    if (e.target === el.url || e.target === el.text) return;
+    const f = e.clipboardData?.files;
+    if (f && f.length) addFiles(f);
+  });
   addEventListener('dragover', (e) => e.preventDefault());
   addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer?.files.length) addFiles(e.dataTransfer.files); });
+
+  /* ---------- link formu */
+  el.form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    el.url.blur();
+    toggleMenu(false);
+    openChapter(el.url.value);
+  });
+  function showResume() {
+    const last = ls.get('last', null);
+    el.resume.hidden = !last?.url;
+    if (last?.url) el.resumeTitle.textContent = last.title || last.url;
+  }
+  el.resume.onclick = () => { const last = ls.get('last', null); if (last?.url) openChapter(last.url); };
 
   /* ---------- ayarlar */
   function toggleMenu(open = el.menu.hidden) {
@@ -767,6 +926,11 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   });
   el.src.onchange = () => { settings.src = el.src.value; ls.set('src', settings.src); pages.forEach((p) => p.sample || refresh(p)); };
   el.dst.onchange = () => { settings.dst = el.dst.value; ls.set('dst', settings.dst); pages.forEach((p) => p.sample || refresh(p)); };
+  el.auto.onchange = () => {
+    settings.auto = el.auto.checked;
+    ls.set('auto', settings.auto);
+    if (settings.auto) pages.forEach((p) => { if (!p.sample) { io.unobserve(p.fig); io.observe(p.fig); } });
+  };
   el.layer.onchange = () => {
     settings.layer = el.layer.checked;
     ls.set('layer', settings.layer);
@@ -775,8 +939,9 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   };
   el.email.onchange = () => { settings.email = el.email.value.trim(); ls.set('email', settings.email); };
 
+  // İki adımlı silme: ilk dokunuş sorar, ikincisi siler
   let armT;
-  function disarm() { el.clear.classList.remove('armed'); el.clear.textContent = 'Tüm sayfaları kaldır'; clearTimeout(armT); }
+  function disarm() { el.clear.classList.remove('armed'); el.clear.textContent = 'Eklenen fotoğrafları kaldır'; clearTimeout(armT); }
   el.clear.onclick = async () => {
     if (!el.clear.classList.contains('armed')) {
       el.clear.classList.add('armed');
@@ -786,20 +951,17 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     }
     disarm();
     toggleMenu(false);
-    queue.length = 0;
-    pages.forEach((p) => { p.fig.remove(); URL.revokeObjectURL(p.url); });
-    pages = [];
-    await store.clear();
-    el.intro.hidden = false;
-    makeSamplePage();
-    scrollTo({ top: 0 });
-    toast('Sayfalar kaldırıldı.');
+    const saved = ((await store.all()) || []).filter((s) => !s.remote);
+    await Promise.all(saved.map((s) => store.del(s.id)));
+    if (view === 'uploads') { await showUploads(); scrollTo({ top: 0 }); }
+    toast('Fotoğraflar kaldırıldı.');
   };
 
   let lastY = scrollY;
   addEventListener('scroll', () => {
     const y = scrollY;
-    el.bar.classList.toggle('hide', y > lastY && y > 160 && el.menu.hidden);
+    const hide = y > lastY && y > 160 && el.menu.hidden && document.activeElement !== el.url;
+    el.bar.classList.toggle('hide', hide);
     lastY = y;
   }, { passive: true });
 
@@ -850,35 +1012,22 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       { x: 180 / W, y: 212 / H, w: 300 / W, h: 82 / H, text: "Wait! You can't go in there!" },
       { x: 220 / W, y: 762 / H, w: 220 / W, h: 82 / H, text: 'Oh yeah? Watch me.' },
     ];
+    const trs = ['Ertesi sabah...', 'Dur! Oraya giremezsin!', 'Öyle mi? İzle de gör.'];
     c.toBlob((blob) => {
-      if (!blob) return;
-      const p = {
-        id: 'sample', order: -1, blob, url: URL.createObjectURL(blob), sample: true,
-        ocr: { src: settings.src, bubbles },
-        tr: { [pair()]: ['Ertesi sabah...', 'Dur! Oraya giremezsin!', 'Öyle mi? İzle de gör.'] },
-      };
-      // örnek her dil ayarında Türkçe örneğiyle görünsün
+      if (!blob || view !== 'uploads' || pages.length) return;
+      const p = { id: 'sample', sample: true, url: URL.createObjectURL(blob) };
+      // Örnek her dil ayarında aynı Türkçe çeviriyle görünür
       Object.defineProperty(p, 'ocr', { get: () => ({ src: settings.src, bubbles }) });
-      Object.defineProperty(p, 'tr', { get: () => ({ [pair()]: ['Ertesi sabah...', 'Dur! Oraya giremezsin!', 'Öyle mi? İzle de gör.'] }) });
+      Object.defineProperty(p, 'tr', { get: () => ({ [pair()]: trs }) });
       pages.unshift(p);
       mountPage(p, el.reader.firstChild);
     }, 'image/png');
   }
 
-  /* ---------- açılış */
-  (async () => {
-    const saved = (await store.all()) || [];
-    if (saved.length) {
-      el.intro.hidden = true;
-      saved.sort((a, b) => a.order - b.order).forEach((s) => {
-        const p = { id: s.id, order: s.order, blob: s.blob, url: URL.createObjectURL(s.blob), ocr: s.ocr || null, tr: s.tr || {} };
-        pages.push(p);
-        mountPage(p);
-      });
-    } else {
-      makeSamplePage();
-    }
-  })();
+  /* ---------- açılış: ?u=<link> ile doğrudan bölüm açılabilir */
+  const direct = new URLSearchParams(location.search).get('u');
+  if (direct) { el.url.value = direct; openChapter(direct); }
+  else showUploads();
 })();
 </script>
 </body>
