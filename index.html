@@ -119,6 +119,8 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
 .setup-lede{margin:10px 0 0;font-size:15px;line-height:1.45;color:#4a4639}
 .setup-steps{display:grid;gap:6px;margin:8px 0 0;padding-left:20px;font-size:15px;line-height:1.4}
 .setup-steps b{font-weight:600}
+.drag{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:12px 20px;border-radius:12px;background:var(--accent);color:var(--ink);font-weight:800;font-size:17px;text-decoration:none;cursor:grab;box-shadow:0 0 0 2px var(--ink)}
+.drag:active{cursor:grabbing}
 #setup-code{font-family:ui-monospace,Menlo,monospace;font-size:12px;word-break:break-all}
 .card-actions{display:flex;gap:8px;margin-top:18px}
 .card-actions button{flex:1;min-height:48px;border:1px solid #d3ccbd;border-radius:12px;background:none;color:var(--ink);font-size:15px;font-weight:600}
@@ -183,7 +185,13 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   <div class="card">
     <p class="card-tr" id="setup-title">Balon yer imi</p>
     <p class="setup-lede">Link ile açılmayan sitelerde (ör. Manta) bölümü kendi sitesinde açarsın, yer imine dokunursun. O an ekranda yüklü olan sayfalar Balon'a aktarılır.</p>
-    <p class="card-label">Bir kere kur</p>
+    <p class="card-label">Bilgisayarda kur</p>
+    <ol class="setup-steps">
+      <li>Yer imleri çubuğunu aç: <b>Ctrl + Shift + B</b> (Mac'te <b>⌘ + Shift + B</b>).</li>
+      <li>Bu sarı düğmeyi tutup yer imleri çubuğuna sürükle:</li>
+    </ol>
+    <a class="drag" id="setup-drag" href="#">⤓ Balon</a>
+    <p class="card-label">Telefonda kur</p>
     <ol class="setup-steps">
       <li>Aşağıdaki <b>Kodu kopyala</b>'ya dokun.</li>
       <li>Safari'de Paylaş → <b>Yer İşareti Ekle</b> → adını <b>Balon</b> yap → Kaydet.</li>
@@ -192,7 +200,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     <p class="card-label">Her bölümde</p>
     <ol class="setup-steps">
       <li>Bölümü kendi sitesinde aç ve <b>sonuna kadar kaydır</b> (sayfalar yüklensin).</li>
-      <li>Adres çubuğuna <b>Balon</b> yaz, çıkan yer imine dokun.</li>
+      <li>Bilgisayarda yer imleri çubuğundaki <b>Balon</b>'a tıkla. Telefonda adres çubuğuna <b>Balon</b> yaz, çıkan yer imine dokun.</li>
     </ol>
     <label class="card-label" for="setup-code">Yer imi kodu</label>
     <textarea class="card-src" id="setup-code" rows="3" readonly spellcheck="false"></textarea>
@@ -1155,6 +1163,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   el.setupBtn.onclick = () => {
     toggleMenu(false);
     el.setupCode.value = bookmarkletCode();
+    $('#setup-drag').href = el.setupCode.value;
     el.setup.hidden = false;
     void el.setup.offsetHeight;
     el.setup.classList.add('open');
@@ -1166,6 +1175,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     setTimeout(() => { el.setup.hidden = true; }, 340);
   };
   $('#setup-close').onclick = closeSetup;
+  $('#setup-drag').addEventListener('click', (e) => { e.preventDefault(); toast('Tıklama değil: düğmeyi tutup yer imleri çubuğuna sürükle.'); });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSetup(); });
   el.setup.addEventListener('click', (e) => { if (e.target === el.setup) closeSetup(); });
   $('#setup-copy').onclick = () => {
