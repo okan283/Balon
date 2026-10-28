@@ -1072,8 +1072,8 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   /* Bu fonksiyon yer imine dönüştürülür ve okunan sitenin içinde, kullanıcının kendi tarayıcısında çalışır.
      Görselleri toplar: normal adresleri (henüz yüklenmemiş olanların saklı adresleri dahil) link olarak,
      tarayıcıda üretilmiş görselleri (blob/canvas) veri olarak. Sayfa sadece görünen kısmı tutuyorsa,
-     baştan sona kendisi kaydırıp her sayfayı göründüğü an yakalar. İçinde // yorum olmamalı:
-     yer imine çevrilirken satırlar birleşir. */
+     ekranı bir perdeyle kapatıp (spoiler görünmesin) baştan sona kendisi kaydırır ve her sayfayı
+     yüklendiği an yakalar. İçinde // yorum olmamalı: yer imine çevrilirken satırlar birleşir. */
   function bookmarklet(B) {
     (async () => {
       if (window.__balon) return;
@@ -1081,20 +1081,31 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       const O = new URL(B).origin;
       const LAZY = ['data-url', 'data-src', 'data-original', 'data-lazy-src', 'data-lazy'];
       const found = new Map();
+      const done = new WeakMap();
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const t0 = Date.now();
+
       const box = document.createElement('div');
-      box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:16px;z-index:2147483647;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#12131c;color:#f3efe4;font:15px/1.4 system-ui,-apple-system,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)';
-      const msg = document.createElement('span');
-      msg.style.flex = '1';
+      box.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;background:#12131c;color:#f3efe4;font:16px/1.4 system-ui,-apple-system,sans-serif;text-align:center';
+      const head = document.createElement('div');
+      head.style.cssText = 'font-weight:800;font-size:28px;letter-spacing:-.03em';
+      head.textContent = 'Balon';
+      const msg = document.createElement('div');
+      msg.style.cssText = 'max-width:300px;color:#c9c8d4';
+      const track = document.createElement('div');
+      track.style.cssText = 'width:min(280px,80vw);height:6px;border-radius:6px;background:#2e3144;overflow:hidden';
+      const fill = document.createElement('div');
+      fill.style.cssText = 'width:0;height:100%;background:#ffd23f;transition:width .2s';
+      track.append(fill);
       const btn = document.createElement('button');
-      btn.style.cssText = 'flex:none;border:0;border-radius:10px;padding:10px 14px;background:#ffd23f;color:#12131c;font:600 15px system-ui,-apple-system,sans-serif;cursor:pointer';
-      box.append(msg, btn);
-      document.body.append(box);
+      btn.style.cssText = 'border:0;border-radius:12px;padding:12px 20px;background:#ffd23f;color:#12131c;font:600 16px system-ui,-apple-system,sans-serif;cursor:pointer';
+      box.append(head, msg, track, btn);
+      document.documentElement.append(box);
       const end = () => { box.remove(); window.__balon = 0; };
       let stop = false;
       btn.textContent = 'Durdur';
       btn.onclick = () => { stop = true; };
-      msg.textContent = 'Balon: sayfalar toplanıyor…';
+      msg.textContent = 'Sayfalar toplanıyor. Spoiler görmemen için ekran kapalı.';
 
       const toBlob = (c) => new Promise((r) => { try { c.toBlob((b) => r(b), 'image/jpeg', 0.9); } catch (e) { r(null); } });
       const fp = (src) => {
@@ -1104,9 +1115,9 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
           const g = c.getContext('2d');
           g.drawImage(src, 0, 0, 12, 12);
           const d = g.getImageData(0, 0, 12, 12).data;
-          let s = '';
-          for (let i = 0; i < d.length; i += 16) s += d[i] + ',';
-          return s;
+          let s = '', seen = false;
+          for (let i = 0; i < d.length; i += 16) { s += d[i] + ','; if (d[i + 3]) seen = true; }
+          return seen ? s : null;
         } catch (e) { return null; }
       };
       const scroller = (() => {
@@ -1120,15 +1131,18 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       })();
       const isDoc = scroller === document.scrollingElement || scroller === document.documentElement;
       const pos = () => (isDoc ? window.scrollY : scroller.scrollTop);
-      const go = (y) => { if (isDoc) window.scrollTo(0, y); else scroller.scrollTop = y; };
+      const go = (y) => { if (isDoc) window.scrollTo({ top: y, behavior: 'instant' }); else scroller.scrollTo({ top: y, behavior: 'instant' }); };
       const view = () => (isDoc ? innerHeight : scroller.clientHeight);
       const maxPos = () => (isDoc ? document.documentElement.scrollHeight : scroller.scrollHeight) - view();
+      const big = (e) => { const r = e.getBoundingClientRect(); return r.width >= 200 ? r : null; };
 
       async function collect() {
         for (const e of document.querySelectorAll('img,canvas')) {
-          const r = e.getBoundingClientRect();
-          if (r.width < 200) continue;
+          const r = big(e);
+          if (!r) continue;
           const top = Math.round(r.top + pos());
+          const sig = (e.currentSrc || e.src || '') + '|' + top + '|' + e.width + 'x' + e.height;
+          if (done.get(e) === sig) continue;
           if (e.tagName === 'IMG') {
             let u = e.currentSrc || e.src || '';
             const ok = e.complete && e.naturalWidth >= 300 && e.naturalHeight >= 150;
@@ -1139,66 +1153,81 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
                 if (/^(https?:)?\/\//.test(v)) { u = new URL(v, location.href).href; break; }
               }
               if (!u) continue;
+              if (!found.has(u)) found.set(u, { top, u });
+              continue;
             }
-            if (/^https?:/.test(u)) { if (!found.has(u)) found.set(u, { top, u }); continue; }
+            if (/^https?:/.test(u)) { if (!found.has(u)) found.set(u, { top, u }); done.set(e, sig); continue; }
             const k = fp(e);
             if (!k) continue;
             const key = k + '@' + Math.round(top / 50);
-            if (found.has(key)) continue;
-            const c = document.createElement('canvas');
-            c.width = e.naturalWidth; c.height = e.naturalHeight;
-            c.getContext('2d').drawImage(e, 0, 0);
-            const b = await toBlob(c);
-            if (b) found.set(key, { top, b });
+            if (!found.has(key)) {
+              const c = document.createElement('canvas');
+              c.width = e.naturalWidth; c.height = e.naturalHeight;
+              c.getContext('2d').drawImage(e, 0, 0);
+              const b = await toBlob(c);
+              if (!b) continue;
+              found.set(key, { top, b });
+            }
+            done.set(e, sig);
           } else {
             if (e.width < 300 || e.height < 150) continue;
             const k = fp(e);
             if (!k) continue;
             const key = k + '@' + Math.round(top / 50);
-            if (found.has(key)) continue;
-            const b = await toBlob(e);
-            if (b) found.set(key, { top, b });
+            if (!found.has(key)) {
+              const b = await toBlob(e);
+              if (!b) continue;
+              found.set(key, { top, b });
+            }
+            done.set(e, sig);
           }
         }
       }
+
+      const ready = () => {
+        const vh = isDoc ? innerHeight : scroller.getBoundingClientRect().bottom;
+        let covered = false;
+        for (const e of document.querySelectorAll('img,canvas')) {
+          const r = big(e);
+          if (!r || r.bottom <= 0 || r.top >= vh) continue;
+          if (e.tagName === 'IMG' && !(e.complete && e.naturalWidth)) return false;
+          if (r.top <= vh / 2 && r.bottom >= vh / 2) covered = true;
+        }
+        return covered;
+      };
 
       await collect();
       const quick = found.size >= 10 && [...found.values()].every((x) => x.u);
       if (!quick) {
         const start = pos();
         go(0);
-        await wait(700);
         let last = -1;
         while (!stop) {
+          for (let i = 0; i < 30 && !ready(); i++) await wait(100);
           await collect();
-          msg.textContent = 'Balon: sayfalar toplanıyor… ' + found.size;
+          const m = Math.max(1, maxPos());
+          fill.style.width = Math.min(100, Math.round((pos() / m) * 100)) + '%';
+          msg.textContent = found.size + ' sayfa toplandı. Spoiler görmemen için ekran kapalı.';
           const y = pos();
-          if (y >= maxPos() - 2 && y === last) break;
+          if (y >= m - 2 && y === last) break;
           last = y;
-          go(y + view() * 0.7);
-          await wait(400);
-          for (let i = 0; i < 12; i++) {
-            const busy = [...document.images].some((im) => {
-              const r = im.getBoundingClientRect();
-              return r.width > 200 && r.bottom > 0 && r.top < innerHeight && !im.complete;
-            });
-            if (!busy) break;
-            await wait(300);
-          }
+          go(y + view() * 0.9);
+          await wait(80);
         }
         await collect();
         go(start);
       }
+      fill.style.width = '100%';
 
       const items = [...found.values()].sort((a, b) => a.top - b.top).map((x) => (x.u ? { u: x.u } : { b: x.b }));
       if (!items.length) {
-        msg.textContent = 'Balon: bu sayfada çizgi roman görseli bulunamadı.';
+        msg.textContent = 'Bu sayfada çizgi roman görseli bulunamadı.';
         btn.textContent = 'Kapat';
         btn.onclick = end;
         return;
       }
       const meta = { r: location.href, t: document.title };
-      msg.textContent = items.length + ' sayfa hazır.';
+      msg.textContent = items.length + ' sayfa hazır (' + Math.round((Date.now() - t0) / 1000) + ' sn).';
       btn.textContent = "Balon'da aç";
       btn.onclick = () => {
         if (items.every((x) => x.u)) {
