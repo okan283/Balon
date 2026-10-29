@@ -44,7 +44,7 @@ button{cursor:pointer}
 .go input::placeholder{color:var(--mute)}
 .go-btn{flex:none;display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:10px;background:var(--accent);color:var(--ink);transition:transform .15s}
 .go-btn:active{transform:scale(.92)}
-.icon-btn{flex:none;display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);cursor:pointer}
+.icon-btn{flex:none;display:grid;place-items:center;width:44px;height:48px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);cursor:pointer}
 .icon-btn[aria-expanded=true]{border-color:var(--accent)}
 .icon-btn:has(+ input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
 
@@ -97,7 +97,21 @@ button{cursor:pointer}
 .bubble span{display:block;max-width:100%;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
 .bubble:active{filter:brightness(.93)}
 .bubble.pending span{opacity:.35}
-body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transparent;box-shadow:inset 0 0 0 2px rgba(255,210,63,.9)}
+body.layer-off .bubble,.page.peek .bubble,body.select-mode .bubble{background:transparent;color:transparent;box-shadow:inset 0 0 0 2px rgba(255,210,63,.9)}
+.bubble.busy{pointer-events:none}
+.bubble.busy::after,.sel.busy::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(255,210,63,.45) 50%,transparent 65%);animation:scan 1.2s linear infinite}
+
+/* ---------- tarama modu: alan seçme ve çerçeveyi köşesinden boyutlandırma */
+.icon-btn[aria-pressed=true]{border-color:var(--accent);background:var(--accent);color:var(--ink)}
+body.select-mode .page{cursor:crosshair;touch-action:none}
+.sel{position:absolute;z-index:2;overflow:hidden;border:2px dashed var(--accent);background:rgba(255,210,63,.14);pointer-events:none}
+.h{display:none;position:absolute;width:18px;height:18px;border:2px solid var(--ink);border-radius:5px;background:var(--accent);touch-action:none;z-index:1}
+.h[data-c=nw]{left:-2px;top:-2px;cursor:nwse-resize}
+.h[data-c=ne]{right:-2px;top:-2px;cursor:nesw-resize}
+.h[data-c=sw]{left:-2px;bottom:-2px;cursor:nesw-resize}
+.h[data-c=se]{right:-2px;bottom:-2px;cursor:nwse-resize}
+body.select-mode .bubble .h,body.layer-off .bubble:hover .h,.page.peek .bubble:hover .h,body.layer-off .bubble:focus-visible .h,.page.peek .bubble:focus-visible .h{display:block}
+@media (hover:none){body.layer-off .bubble .h,.page.peek .bubble .h{display:block}}
 
 .nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-block:22px 0;padding-left:var(--gl);padding-right:var(--gr)}
 .nav button{min-height:54px;padding:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);font-weight:600}
@@ -146,6 +160,10 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
     </button>
   </form>
+  <button class="icon-btn" id="scan-btn" type="button" aria-pressed="false" title="Tarama modu: çevrilecek yeri kendin seç">
+    <span class="sr">Tarama modu</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 12h8"/></svg>
+  </button>
   <label class="icon-btn" for="file" title="Ekran görüntüsü ekle">
     <span class="sr">Ekran görüntüsü ekle</span>
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>
@@ -428,10 +446,55 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0',
       logger: (m) => onProgress && onProgress(m),
     });
-    // 11 = seyrek metin: sayfanın her yerine dağılmış balonları bulur
-    await worker.setParameters({ tessedit_pageseg_mode: '11', user_defined_dpi: '300' });
+    await worker.setParameters({ user_defined_dpi: '300' });
     workerLang = lang;
     return worker;
+  }
+
+  // Tarayıcı tek seferde tek tarama yapar; tüm sayfa ve seçili alan taramaları sıraya girer
+  let ocrChain = Promise.resolve();
+  function withOcr(fn) {
+    const run = ocrChain.then(fn);
+    ocrChain = run.catch(() => {});
+    return run;
+  }
+
+  // Seçili alanı tek balon olarak oku. box: sayfaya oranla {x,y,w,h}
+  async function readRegion(p, box) {
+    const conf = SRC[settings.src];
+    const img = await loadImage(p.url);
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const x0 = Math.max(0, Math.floor(box.x * W)), y0 = Math.max(0, Math.floor(box.y * H));
+    const x1 = Math.min(W, Math.ceil((box.x + box.w) * W)), y1 = Math.min(H, Math.ceil((box.y + box.h) * H));
+    const sw = x1 - x0, sh = y1 - y0;
+    if (sw < 8 || sh < 8) return '';
+    const k = Math.max(1, Math.min(3, 900 / sw)), pad = 16;
+    const c = document.createElement('canvas');
+    c.width = Math.round(sw * k) + pad * 2;
+    c.height = Math.round(sh * k) + pad * 2;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, x0, y0, sw, sh, pad, pad, c.width - pad * 2, c.height - pad * 2);
+    const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+    for (let i = 0; i < a.length; i += 4) {
+      const v = a[i] * 0.299 + a[i + 1] * 0.587 + a[i + 2] * 0.114;
+      a[i] = a[i + 1] = a[i + 2] = v;
+    }
+    g.putImageData(d, 0, 0);
+    return withOcr(async () => {
+      const w = await getWorker(conf.ocr);
+      // 6 = tek metin bloğu (dikey Japoncada 5)
+      await w.setParameters({ tessedit_pageseg_mode: conf.vertical ? '5' : '6' });
+      const { data } = await w.recognize(c, {}, { blocks: true, text: false });
+      const lines = [];
+      for (const block of data.blocks || []) for (const para of block.paragraphs || []) for (const line of para.lines || []) {
+        const words = (line.words || []).filter((x) => (x.text || '').trim() && x.confidence >= 35);
+        if (words.length) lines.push(words.map((x) => x.text.trim()).join(conf.cjk ? '' : ' '));
+      }
+      return joinText(lines, settings.src);
+    });
   }
 
   function loadImage(url) {
@@ -534,6 +597,8 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     const W = img.naturalWidth, H = img.naturalHeight;
     const parts = slicesOf(W, H);
     const w = await getWorker(conf.ocr);
+    // 11 = seyrek metin: sayfanın her yerine dağılmış balonları bulur
+    await w.setParameters({ tessedit_pageseg_mode: '11' });
     const found = [];
     for (let s = 0; s < parts.length; s++) {
       const [y0, h] = parts[s];
@@ -646,7 +711,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   }
 
   /* =========================================================== SAYFA AKIŞI */
-  const LABEL = { idle: 'Çevir', queued: 'Sırada', error: 'Tekrar dene', broken: 'Görsel yüklenemedi' };
+  const LABEL = { idle: 'Çevir', queued: 'Sırada', error: 'Tekrar dene', broken: 'Görsel yüklenemedi', partial: 'Tüm sayfayı çevir' };
 
   function setState(p, s, label) {
     p.fig.dataset.state = s;
@@ -661,16 +726,31 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   function refresh(p) {
     if (p.fig.dataset.state === 'broken') return;
     p.fig.classList.remove('peek');
-    if (hasTr(p)) { draw(p); setState(p, 'done'); }
-    else { p.fig.querySelector('.layer').textContent = ''; setState(p, p.fig.dataset.state === 'error' ? 'error' : 'idle'); }
+    const shown = hasScan(p) && p.ocr.bubbles.length && Array.isArray(p.tr[pair()]);
+    if (shown) {
+      draw(p);
+      // full === false: sayfada sadece elle seçilen alanlar var, tamamı henüz taranmadı
+      setState(p, !hasTr(p) ? 'error' : p.ocr.full === false ? 'partial' : 'done');
+    } else { p.fig.querySelector('.layer').textContent = ''; setState(p, p.fig.dataset.state === 'error' ? 'error' : 'idle'); }
+  }
+
+  // İki kutunun kesişimi, küçük kutunun alanına oranla
+  function overlap(a, b) {
+    const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+    const iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+    const small = Math.min(a.w * a.h, b.w * b.h);
+    return small > 0 ? (ix * iy) / small : 0;
   }
 
   async function process(p) {
     const report = (t) => setState(p, 'busy', t);
     report('Hazırlanıyor');
     try {
-      if (!hasScan(p)) {
-        p.ocr = { src: settings.src, bubbles: await scan(p, report) };
+      if (!hasScan(p) || p.ocr.full === false) {
+        // Elle seçilen/boyutlandırılan balonlar korunur, otomatik bulunanlar onlarla çakışıyorsa atlanır
+        const manual = hasScan(p) ? p.ocr.bubbles.filter((b) => b.manual) : [];
+        const auto = await withOcr(() => scan(p, report));
+        p.ocr = { src: settings.src, bubbles: [...auto.filter((a) => !manual.some((m) => overlap(a, m) > 0.5)), ...manual] };
         p.tr = {};
         store.put(p);
       }
@@ -703,7 +783,7 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   const queue = [];
   let busy = false;
   function enqueue(p) {
-    if (!['idle', 'error'].includes(p.fig.dataset.state)) return;
+    if (!['idle', 'error', 'partial'].includes(p.fig.dataset.state)) return;
     setState(p, 'queued');
     queue.push(p);
     pump();
@@ -765,8 +845,8 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
     layer.textContent = '';
     const trs = p.tr[pair()] || [];
     p.ocr.bubbles.forEach((b, i) => {
-      // Kutu yazının etrafında; orijinal harfleri tam örtmek için biraz genişlet
-      const px = Math.max(0.008, b.w * 0.07), py = Math.max(0.004, b.h * 0.12);
+      // Otomatik kutu yazının etrafında; orijinal harfleri tam örtmek için biraz genişlet. Elle çizilen kutu olduğu gibi kalır.
+      const px = b.manual ? 0 : Math.max(0.008, b.w * 0.07), py = b.manual ? 0 : Math.max(0.004, b.h * 0.12);
       const x = Math.max(0, b.x - px), y = Math.max(0, b.y - py);
       const w = Math.min(1 - x, b.w + px * 2), h = Math.min(1 - y, b.h + py * 2);
       const btn = document.createElement('button');
@@ -778,6 +858,13 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
       const span = document.createElement('span');
       span.textContent = trs[i] || b.text;
       btn.append(span);
+      if (!p.sample) for (const c of ['nw', 'ne', 'sw', 'se']) {
+        const h = document.createElement('span');
+        h.className = 'h';
+        h.dataset.c = c;
+        h.setAttribute('aria-hidden', 'true');
+        btn.append(h);
+      }
       layer.append(btn);
     });
     fit(p.fig);
@@ -808,15 +895,130 @@ body.layer-off .bubble,.page.peek .bubble{background:transparent;color:transpare
   }, { rootMargin: '600px 0px' });
 
   /* ---------- dokunma */
+  let swallow = false; // çizme/boyutlandırma bitince ardından gelen tıklamayı yut
   el.reader.addEventListener('click', (e) => {
+    if (swallow) { swallow = false; return; }
     const bub = e.target.closest('.bubble');
     if (bub) return openSheet(bub);
     const fig = e.target.closest('.page');
     if (!fig) return;
     const s = fig.dataset.state;
-    if (s === 'idle' || s === 'error') enqueue(fig._p);
-    else if (s === 'done' && settings.layer) fig.classList.toggle('peek');
+    if (e.target.closest('.tag') || (!selecting && (s === 'idle' || s === 'error'))) return enqueue(fig._p);
+    if (!selecting && (s === 'done' || s === 'partial') && settings.layer) fig.classList.toggle('peek');
   });
+
+  /* ---------- tarama modu: yeri kendin seç, çerçeveyi köşesinden boyutlandır */
+  let selecting = false;
+  el.scanBtn = $('#scan-btn');
+  function setSelect(on) {
+    selecting = on;
+    document.body.classList.toggle('select-mode', on);
+    el.scanBtn.setAttribute('aria-pressed', String(on));
+    document.querySelectorAll('.page.peek').forEach((f) => f.classList.remove('peek'));
+    toast(on
+      ? 'Tarama modu açık: çevirmek istediğin yeri çiz. Çerçeveleri köşelerinden büyütüp küçültebilirsin. Kaydırmak için modu kapat.'
+      : 'Tarama modu kapandı.');
+  }
+  el.scanBtn.onclick = () => setSelect(!selecting);
+
+  // Seçilen kutuyu tara ve çevir. idx boşsa yeni balon eklenir, doluysa o balon güncellenir.
+  async function rescanBox(p, box, idx) {
+    if (!hasScan(p)) { p.ocr = { src: settings.src, bubbles: [], full: false }; p.tr = {}; }
+    let text = '';
+    try { text = await readRegion(p, box); }
+    catch (e) { toast(errorText(e)); refresh(p); return; }
+    if (!text) {
+      toast('Seçtiğin yerde yazı okunamadı. Çerçeveyi yazının etrafına biraz daha geniş çiz ya da ayarlardan sayfadaki dili kontrol et.');
+      if (idx == null) { refresh(p); return; }
+    }
+    const b = { x: box.x, y: box.y, w: box.w, h: box.h, text: text || p.ocr.bubbles[idx].text, manual: true };
+    const n = p.ocr.bubbles.length + (idx == null ? 1 : 0);
+    if (idx == null) { idx = p.ocr.bubbles.length; p.ocr.bubbles.push(b); }
+    else p.ocr.bubbles[idx] = b;
+    for (const k of Object.keys(p.tr)) {
+      const arr = p.tr[k];
+      if (!Array.isArray(arr)) continue;
+      while (arr.length < n) arr.push(null);
+      arr[idx] = null; // eski çeviri geçersiz
+    }
+    const lp = pair();
+    const arr = (p.tr[lp] ||= []);
+    while (arr.length < n) arr.push(null);
+    try { arr[idx] = await translateText(b.text, lp); }
+    catch (e) { toast(errorText(e)); }
+    store.put(p);
+    refresh(p);
+  }
+
+  let drag = null;
+  el.reader.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.h');
+    if (handle) {
+      // Çerçeveyi köşesinden boyutlandır
+      const btn = handle.closest('.bubble'), fig = btn.closest('.page');
+      e.preventDefault();
+      e.stopPropagation();
+      const r = fig.getBoundingClientRect();
+      const b0 = { x: btn.offsetLeft / r.width, y: btn.offsetTop / r.height, w: btn.offsetWidth / r.width, h: btn.offsetHeight / r.height };
+      drag = { kind: 'resize', fig, r, btn, c: handle.dataset.c, b0, box: { ...b0 }, sx: e.clientX, sy: e.clientY, moved: false };
+      try { handle.setPointerCapture(e.pointerId); } catch {}
+      return;
+    }
+    if (!selecting || e.button > 0 || e.target.closest('.bubble,.tag')) return;
+    const fig = e.target.closest('.page');
+    if (!fig || fig._p.sample || !fig.classList.contains('loaded') || ['broken', 'busy', 'queued'].includes(fig.dataset.state)) return;
+    // Yeni alan çiz
+    e.preventDefault();
+    const r = fig.getBoundingClientRect();
+    const sel = document.createElement('div');
+    sel.className = 'sel';
+    fig.append(sel);
+    drag = { kind: 'new', fig, r, sel, sx: e.clientX - r.left, sy: e.clientY - r.top, box: null };
+    try { fig.setPointerCapture(e.pointerId); } catch {}
+  });
+
+  addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const { r } = drag;
+    if (drag.kind === 'new') {
+      const cx = Math.min(r.width, Math.max(0, e.clientX - r.left)), cy = Math.min(r.height, Math.max(0, e.clientY - r.top));
+      const x = Math.min(drag.sx, cx), y = Math.min(drag.sy, cy), w = Math.abs(cx - drag.sx), h = Math.abs(cy - drag.sy);
+      Object.assign(drag.sel.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+      drag.box = { x: x / r.width, y: y / r.height, w: w / r.width, h: h / r.height, pw: w, ph: h };
+    } else {
+      const dx = (e.clientX - drag.sx) / r.width, dy = (e.clientY - drag.sy) / r.height;
+      if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 3) drag.moved = true;
+      const b0 = drag.b0, c = drag.c, min = 0.03;
+      let x0 = b0.x, y0 = b0.y, x1 = b0.x + b0.w, y1 = b0.y + b0.h;
+      if (c.includes('w')) x0 = Math.min(x1 - min, Math.max(0, b0.x + dx));
+      if (c.includes('e')) x1 = Math.max(x0 + min, Math.min(1, b0.x + b0.w + dx));
+      if (c.includes('n')) y0 = Math.min(y1 - min, Math.max(0, b0.y + dy));
+      if (c.includes('s')) y1 = Math.max(y0 + min, Math.min(1, b0.y + b0.h + dy));
+      drag.box = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      Object.assign(drag.btn.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' });
+    }
+  });
+
+  async function endDrag() {
+    const d = drag;
+    if (!d) return;
+    drag = null;
+    swallow = true;
+    setTimeout(() => { swallow = false; }, 60);
+    const p = d.fig._p;
+    if (d.kind === 'new') {
+      if (!d.box || d.box.pw < 14 || d.box.ph < 14) { d.sel.remove(); return; }
+      d.sel.classList.add('busy');
+      await rescanBox(p, d.box, null);
+      d.sel.remove();
+    } else {
+      if (!d.moved) { swallow = false; return; }
+      d.btn.classList.add('busy');
+      await rescanBox(p, d.box, +d.btn.dataset.i);
+    }
+  }
+  addEventListener('pointerup', endDrag);
+  addEventListener('pointercancel', endDrag);
 
   /* ---------- alt kart: çeviri, düzeltme, Google Çeviri bağlantısı */
   let cur = null;
