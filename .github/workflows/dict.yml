@@ -1,6 +1,6 @@
 name: Sözlüğü oluştur
 
-# Wiktionary verisinden İngilizce -> Türkçe sözlüğü üretip dict/en-tr klasörüne kaydeder.
+# Wiktionary / Vikisözlük verisinden İngilizce -> Türkçe sözlüğü üretip dict/en-tr klasörüne kaydeder.
 # Elle çalıştırmak için: Actions -> Sözlüğü oluştur -> Run workflow
 on:
   workflow_dispatch:
@@ -26,24 +26,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Wiktionary verisini indir ve sözlüğü üret
+      - name: Verileri indir
+        run: |
+          set -uo pipefail
+          mkdir -p /tmp/w
+          # get <hedef> <adres...>: ilk ulaşılabilen adresi indirir
+          get() {
+            local out="$1"; shift
+            for u in "$@"; do
+              if curl -fsSL --retry 3 --max-time 1800 -o "$out" "$u"; then echo "İndirildi: $u ($(du -h "$out" | cut -f1))"; echo "$u" >> /tmp/w/sources; return 0; fi
+              echo "Ulaşılamadı: $u"
+            done
+            rm -f "$out"; return 1
+          }
+          get /tmp/w/en.jsonl.gz \
+            https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl.gz || exit 1
+          get /tmp/w/tr.jsonl.gz \
+            https://kaikki.org/dictionary/Turkish/kaikki.org-dictionary-Turkish.jsonl.gz || echo "Türkçe kelimeler atlandı"
+          get /tmp/w/trwikt.jsonl.gz \
+            https://kaikki.org/trwiktionary/raw-wiktextract-data.jsonl.gz \
+            https://kaikki.org/dictionary/downloads/tr/tr-extract.jsonl.gz || echo "Türkçe Vikisözlük atlandı"
+
+      - name: Sözlüğü üret
         run: |
           set -euo pipefail
-          SRC=""
-          for u in \
-            https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl.gz \
-            https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl \
-            https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz ; do
-            if curl -fsSL --max-time 60 -r 0-0 -o /dev/null "$u"; then SRC="$u"; break; fi
-            echo "Ulaşılamadı: $u"
-          done
-          if [ -z "$SRC" ]; then echo "Hiçbir indirme adresine ulaşılamadı"; exit 1; fi
-          echo "Kaynak: $SRC"
-          if [[ "$SRC" == *.gz ]]; then
-            curl -fsSL --retry 3 "$SRC" | gunzip -c | python3 tools/build_dict.py dict/en-tr "$SRC"
-          else
-            curl -fsSL --retry 3 "$SRC" | python3 tools/build_dict.py dict/en-tr "$SRC"
-          fi
+          python3 tools/build_dict.py dict/en-tr \
+            --en /tmp/w/en.jsonl.gz --tr /tmp/w/tr.jsonl.gz --trwikt /tmp/w/trwikt.jsonl.gz \
+            --sources "$(paste -sd ' ' /tmp/w/sources)" \
+            --show "consider,acknowledge,acknowledged,possession,run,set,glance,summon,rightful,however"
           echo "Dosya sayısı: $(ls dict/en-tr | wc -l)"
           du -sh dict/en-tr
 

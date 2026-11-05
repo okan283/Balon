@@ -936,7 +936,7 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
     star.setAttribute('aria-pressed', String(isSaved(saveKey) || isSaved(w)));
 
     if (!res.length && !phrases.length) {
-      body.append(h('p', 'pempty', D.meta ? 'Sözlükte bulunamadı. Makine çevirisi:' : 'Sözlük henüz hazırlanıyor. Şimdilik makine çevirisi:'));
+      body.append(h('p', 'pempty', (D.meta ? 'Sözlükte bulunamadı.' : 'Sözlük henüz hazırlanıyor.') + ' Tek kelimelik makine çevirisi, bağlamı bilmediği için yanlış olabilir. Emin olmak için cümleyi çevir:'));
       const mt = h('p', 'pmt');
       mt.append(dots());
       body.append(mt);
