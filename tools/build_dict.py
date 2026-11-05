@@ -102,6 +102,23 @@ def clean(s, n):
     return re.sub(r"\s+", " ", str(s or "")).strip()[:n]
 
 
+def split_outside(text):
+    """Virgül ve noktalı virgülden böler, parantez içindekilere dokunmaz."""
+    out, cur, depth = [], "", 0
+    for ch in text:
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth = max(0, depth - 1)
+        if ch in ",;" and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    return [x.strip(" .") for x in out if x.strip(" .")]
+
+
 def is_form_sense(s):
     if s.get("form_of") or s.get("alt_of"):
         return True
@@ -195,7 +212,7 @@ for e in records(args.trwikt, must=['"en"', "İngilizce"]):
         if not g:
             continue
         # Kısa tanımlar ("düşünmek, göz önünde tutmak") kelimelere bölünür, uzunlar tek parça kalır
-        parts = [p.strip(" .") for p in re.split(r"[;,]\s*", g)] if len(g) <= 60 else [g]
+        parts = split_outside(g) if len(g) <= 60 else [g]
         if add(key, pos, "", [p for p in parts if p][:6], ipas.get(key)):
             n += 1
 stats["trvikisözlük"] = n
@@ -215,7 +232,7 @@ for e in records(args.tr):
         gloss = clean("; ".join(s.get("glosses") or []), 200)
         if not gloss:
             continue
-        hint = clean(gloss, 110)
+        hint = clean(re.sub(r"^\d+[.)]\s*", "", gloss), 110)
         bare = re.sub(r"\([^)]*\)|\[[^\]]*\]|[\"“”]", "", gloss)
         cands = []
         for piece in re.split(r"[;,]", bare):
