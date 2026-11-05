@@ -36,7 +36,11 @@ button{cursor:pointer}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---------- üst çubuk */
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:8px;padding-block:10px 14px;padding-left:var(--gl);padding-right:var(--gr);background:linear-gradient(var(--ink) 74%,transparent);transition:transform .3s var(--ease)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-block:10px 14px;padding-left:var(--gl);padding-right:var(--gr);background:linear-gradient(var(--ink) 78%,transparent);transition:transform .3s var(--ease)}
+.tabs{flex-basis:100%;display:flex;width:max-content;max-width:100%}
+.tabs nav{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:12px;background:var(--ink-2)}
+.tab{padding:6px 14px;border-radius:9px;color:var(--mute);font-weight:600;font-size:14px;text-decoration:none}
+.tab[aria-current=page]{background:var(--paper);color:var(--ink)}
 .bar.hide{transform:translateY(-120%)}
 .go{flex:1;display:flex;align-items:center;min-width:0;padding:4px 4px 4px 14px;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;transition:border-color .2s}
 .go:focus-within{border-color:var(--accent)}
@@ -48,7 +52,7 @@ button{cursor:pointer}
 .icon-btn[aria-expanded=true]{border-color:var(--accent)}
 .icon-btn:has(+ input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
 
-.menu{position:fixed;z-index:25;top:calc(70px + env(safe-area-inset-top,0px));right:var(--gr);width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 96px);overflow:auto;padding:6px;background:var(--ink-2);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 48px rgba(0,0,0,.5);animation:drop .2s var(--ease)}
+.menu{position:fixed;z-index:25;top:calc(116px + env(safe-area-inset-top,0px));right:var(--gr);width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 140px);overflow:auto;padding:6px;background:var(--ink-2);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 48px rgba(0,0,0,.5);animation:drop .2s var(--ease)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:52px;padding:0 12px;font-size:15px}
 .row + .row,.row + .field,.field + .row{border-top:1px solid var(--line)}
 .row select{max-width:52%;padding:6px 8px;background:var(--ink);border:1px solid var(--line);border-radius:8px}
@@ -153,6 +157,10 @@ body.select-mode .bubble .h,body.layer-off .bubble:hover .h,.page.peek .bubble:h
 <body>
 
 <header class="bar" id="bar">
+  <div class="tabs"><nav aria-label="Bölümler">
+    <a class="tab" href="./" aria-current="page">Çizgi roman</a>
+    <a class="tab" href="novel.html">Roman</a>
+  </nav></div>
   <form class="go" id="go" autocomplete="off">
     <label class="sr" for="url">Bölüm linki</label>
     <input id="url" type="url" inputmode="url" enterkeyhint="go" placeholder="Bölüm linkini yapıştır" required>

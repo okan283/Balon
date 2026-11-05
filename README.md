@@ -7,6 +7,14 @@
 - **Çeviri:** [MyMemory](https://mymemory.translated.net/doc/spec.php) ücretsiz çeviri servisi. Servise sadece balon metinleri gider.
 - **Saklama:** Tarama ve çeviri sonuçları sadece telefonun tarayıcısında tutulur. Bu depoda çizgi roman içeriği yoktur.
 
+## Roman sekmesi (novel.html)
+
+- Bölüm linki, EPUB/TXT dosyası ya da yapıştırılan metinle açılır.
+- Kelimeye dokununca sözlükteki tüm Türkçe anlamlar türüne göre açılır; çekimli halleri köküne bağlanır, "give up" gibi kalıplar da bulunur.
+- Cümleyi basılı tutunca cümle çevirisi gelir (MyMemory).
+- Kaldığın yer ve kaydedilen kelimeler telefonda tutulur; kelimeler CSV olarak indirilebilir.
+- **Sözlük:** `dict/en-tr/` klasöründe. [Wiktionary](https://en.wiktionary.org) verisinden ([kaikki.org](https://kaikki.org) aracılığıyla) `tools/build_dict.py` ile üretilir. GitHub Actions'taki **Sözlüğü oluştur** işi bunu otomatik yapar ve her ay günceller. Sözlük içeriği CC BY-SA 4.0 lisanslıdır.
+
 ## Yayınlama (Vercel, ücretsiz)
 
 1. vercel.com → **Add New → Project** → bu depoyu (**Balon**) seç → **Import**.

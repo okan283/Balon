@@ -1,0 +1,59 @@
+name: Sözlüğü oluştur
+
+# Wiktionary verisinden İngilizce -> Türkçe sözlüğü üretip dict/en-tr klasörüne kaydeder.
+# Elle çalıştırmak için: Actions -> Sözlüğü oluştur -> Run workflow
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - tools/build_dict.py
+      - .github/workflows/dict.yml
+  schedule:
+    - cron: "17 3 1 * *" # her ayın 1'inde güncelle
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dict
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wiktionary verisini indir ve sözlüğü üret
+        run: |
+          set -euo pipefail
+          SRC=""
+          for u in \
+            https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl.gz \
+            https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl \
+            https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz ; do
+            if curl -fsSL --max-time 60 -r 0-0 -o /dev/null "$u"; then SRC="$u"; break; fi
+            echo "Ulaşılamadı: $u"
+          done
+          if [ -z "$SRC" ]; then echo "Hiçbir indirme adresine ulaşılamadı"; exit 1; fi
+          echo "Kaynak: $SRC"
+          if [[ "$SRC" == *.gz ]]; then
+            curl -fsSL --retry 3 "$SRC" | gunzip -c | python3 tools/build_dict.py dict/en-tr "$SRC"
+          else
+            curl -fsSL --retry 3 "$SRC" | python3 tools/build_dict.py dict/en-tr "$SRC"
+          fi
+          echo "Dosya sayısı: $(ls dict/en-tr | wc -l)"
+          du -sh dict/en-tr
+
+      - name: Değiştiyse kaydet
+        run: |
+          set -euo pipefail
+          git config user.name "okan283"
+          git config user.email "okan283@users.noreply.github.com"
+          git add dict
+          if git diff --cached --quiet; then echo "Sözlük değişmedi"; exit 0; fi
+          git commit -q -m "Sözlük: Wiktionary verisinden yeniden oluşturuldu"
+          git pull -q --rebase origin main
+          git push
