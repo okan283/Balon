@@ -156,6 +156,11 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
 .card-actions > *{flex:1;display:grid;place-items:center;min-height:48px;padding:0 14px;border:1px solid #d3ccbd;border-radius:12px;background:none;color:var(--card-fg);font-size:15px;font-weight:600;cursor:pointer;text-align:center}
 .card-actions .primary{border-color:var(--card-fg);background:var(--card-fg);color:var(--card)}
 .card-actions .armed{border-color:#b3261e;color:#b3261e}
+.setup-lede{margin:10px 0 0;font-size:15px;line-height:1.45;color:var(--card-mute)}
+.setup-steps{display:grid;gap:6px;margin:8px 0 0;padding-left:20px;font-size:15px;line-height:1.4}
+.setup-steps b{font-weight:600}
+.drag{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:12px 20px;border-radius:12px;background:#ffd23f;color:#12131c;font-weight:800;font-size:17px;text-decoration:none;cursor:grab;box-shadow:0 0 0 2px #12131c}
+#setup-code{min-height:0;font-family:ui-monospace,Menlo,monospace;font-size:12px;word-break:break-all}
 .words{display:grid;margin:14px 0 0;padding:0;list-style:none}
 .words li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 0;border-top:1px solid var(--card-line)}
 .words b{font-family:var(--f-read);font-size:18px;font-weight:600}
@@ -210,6 +215,7 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
     </div>
   </div>
   <button type="button" id="words-btn">Kelimelerim <span id="words-count"></span></button>
+  <button type="button" id="setup-btn">Link açılmayan sitelerde kullan</button>
   <label class="field" for="email">E-posta (isteğe bağlı)
     <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="ornek@mail.com">
     <small>Cümle çevirisi ücretsiz MyMemory servisiyle yapılır. E-posta yazarsan günlük limit 5.000 karakterden 50.000 karaktere çıkar.</small>
@@ -244,6 +250,37 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
     <div class="card-actions">
       <button type="button" id="paste-open">Yapıştırılan metni aç</button>
       <button type="button" class="primary" id="open-close">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="setup-sheet" role="dialog" aria-modal="true" aria-labelledby="setup-title" hidden>
+  <div class="card">
+    <h2 id="setup-title">Balon Roman yer imi</h2>
+    <p class="setup-lede">Link ile açılmayan sitelerde bölümü kendi tarayıcında açarsın, yer imine dokunursun. Ekrandaki yazı Balon'a aktarılır.</p>
+    <p class="card-label">Bilgisayarda kur</p>
+    <ol class="setup-steps">
+      <li>Yer imleri çubuğunu aç: <b>Ctrl + Shift + B</b> (Mac'te <b>⌘ + Shift + B</b>).</li>
+      <li>Bu sarı düğmeyi tutup yer imleri çubuğuna sürükle:</li>
+    </ol>
+    <a class="drag" id="setup-drag" href="#">⤓ Balon Roman</a>
+    <p class="card-label">Telefonda kur</p>
+    <ol class="setup-steps">
+      <li>Aşağıdaki <b>Kodu kopyala</b>'ya dokun.</li>
+      <li>Safari'de Paylaş → <b>Yer İşareti Ekle</b> → adını <b>Balon Roman</b> yap → Kaydet.</li>
+      <li>Yer İşaretleri → <b>Düzenle</b> → Balon Roman → adres satırını sil, kopyaladığın kodu yapıştır.</li>
+    </ol>
+    <p class="card-label">Her bölümde</p>
+    <ol class="setup-steps">
+      <li>Bölümü sitesinde aç.</li>
+      <li>Bilgisayarda çubuktaki <b>Balon Roman</b>'a tıkla. Telefonda adres çubuğuna <b>Balon Roman</b> yaz, çıkan yer imine dokun.</li>
+      <li>Bölüm sonundaki <b>Sonraki bölüm</b> seni sitedeki sonraki bölüme götürür, orada tekrar yer imine dokun.</li>
+    </ol>
+    <label class="card-label" for="setup-code">Yer imi kodu</label>
+    <textarea id="setup-code" rows="3" readonly spellcheck="false"></textarea>
+    <div class="card-actions">
+      <button type="button" id="setup-copy">Kodu kopyala</button>
+      <button type="button" class="primary" id="setup-close">Kapat</button>
     </div>
   </div>
 </div>
@@ -331,10 +368,11 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
     sheet.classList.remove('open');
     setTimeout(() => { sheet.hidden = true; }, 340);
   }
-  for (const s of [el.openSheet, el.wordsSheet]) s.addEventListener('click', (e) => { if (e.target === s) closeCard(s); });
+  el.setupSheet = $('#setup-sheet');
+  for (const s of [el.openSheet, el.wordsSheet, el.setupSheet]) s.addEventListener('click', (e) => { if (e.target === s) closeCard(s); });
   addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    closePop(); toggleMenu(false); closeCard(el.openSheet); closeCard(el.wordsSheet);
+    closePop(); toggleMenu(false); closeCard(el.openSheet); closeCard(el.wordsSheet); closeCard(el.setupSheet);
   });
 
   /* ---------- kitap kaydı (IndexedDB): dosyalar ve yapıştırılan metinler tekrar açılabilsin */
@@ -462,8 +500,11 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
     renderParas(text, chap.paras);
     el.reader.append(text);
 
-    const hasPrev = b.kind === 'url' ? !!b.prev : chIdx > 0;
-    const hasNext = b.kind === 'url' ? !!b.next : chIdx < b.chapters.length - 1;
+    // web: yer imiyle gelen bölüm; önceki/sonraki bölüm sitenin kendisinde açılır
+    const linked = b.kind === 'url' || b.kind === 'web';
+    const go = (u) => (b.kind === 'web' ? (location.href = u) : openUrl(u));
+    const hasPrev = linked ? !!b.prev : chIdx > 0;
+    const hasNext = linked ? !!b.next : chIdx < b.chapters.length - 1;
     if (hasPrev || hasNext) {
       const nav = document.createElement('nav');
       nav.className = 'nav';
@@ -473,8 +514,8 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
         btn.type = 'button'; btn.className = cls; btn.textContent = label; btn.onclick = fn;
         nav.append(btn);
       };
-      if (hasPrev) mk('prev', 'Önceki bölüm', () => (b.kind === 'url' ? openUrl(b.prev) : show(b, chIdx - 1, 0)));
-      if (hasNext) mk('next', 'Sonraki bölüm', () => (b.kind === 'url' ? openUrl(b.next) : show(b, chIdx + 1, 0)));
+      if (hasPrev) mk('prev', 'Önceki bölüm', () => (linked ? go(b.prev) : show(b, chIdx - 1, 0)));
+      if (hasNext) mk('next', 'Sonraki bölüm', () => (linked ? go(b.next) : show(b, chIdx + 1, 0)));
       el.reader.append(nav);
     }
 
@@ -607,6 +648,10 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
   }
 
   async function openStored(rec) {
+    if (rec.kind === 'web') {
+      const pos = ls.get('novel.pos.' + rec.id, null);
+      return show({ kind: 'web', ref: rec.id, title: rec.name, chapters: [{ title: rec.name, paras: rec.data, head: true }], next: rec.next, prev: rec.prev }, 0, pos?.p || 0);
+    }
     const parsed = rec.kind === 'epub' ? await parseEpub(rec.data, rec.name) : parseText(rec.kind === 'text' ? rec.data : await rec.data.text(), rec.name);
     const pos = ls.get('novel.pos.' + rec.id, null);
     show({ kind: rec.kind === 'text' ? 'text' : 'file', ref: rec.id, title: parsed.title, chapters: parsed.chapters }, pos?.ch || 0, pos?.p || 0);
@@ -1105,8 +1150,99 @@ body[data-reader=paper] .w.saved{text-decoration-color:#c99800}
     if (!m) el.dictNote.textContent = 'Sözlük henüz hazırlanıyor. Hazır olana kadar kelimeler makine çevirisiyle gösterilir.';
   });
 
+  /* ================================================ YER İMİ (link açılmayan siteler) */
+  /* Bu fonksiyon yer imine dönüştürülür ve okunan sitenin içinde, kullanıcının kendi tarayıcısında çalışır:
+     sayfadaki ana yazı alanını bulur, paragrafları ve önceki/sonraki bölüm linklerini Balon'a gönderir.
+     İçinde // yorum olmamalı: yer imine çevrilirken satırlar birleşir. */
+  function novelBookmarklet(B) {
+    const O = new URL(B).origin;
+    const vis = (e) => { const s = getComputedStyle(e); return s.display !== 'none' && s.visibility !== 'hidden'; };
+    const score = new Map();
+    for (const p of document.querySelectorAll('p')) {
+      const len = (p.innerText || '').trim().length;
+      if (len < 20 || !vis(p) || p.closest('nav,header,footer,aside,form')) continue;
+      const box = p.parentElement;
+      score.set(box, (score.get(box) || 0) + len);
+    }
+    for (const d of document.querySelectorAll('div,article,section,td')) {
+      if (score.has(d) || d.querySelectorAll('br').length < 3 || !vis(d)) continue;
+      let own = 0;
+      for (const n of d.childNodes) if (n.nodeType === 3) own += n.textContent.trim().length;
+      if (own > 80) score.set(d, own);
+    }
+    let best = null, top = 0;
+    for (const [e, s] of score) if (s > top) { top = s; best = e; }
+    if (!best || top < 80) { alert('Balon: bu sayfada okunacak yazı bulunamadı.'); return; }
+    const paras = best.innerText.split(/\n+/).map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const nav = { next: '', prev: '' };
+    for (const a of document.querySelectorAll('a[href]')) {
+      if (!/^https?:/.test(a.href) || a.href.split('#')[0] === location.href.split('#')[0]) continue;
+      const t = ((a.innerText || '') + ' ' + a.id + ' ' + a.className + ' ' + (a.getAttribute('rel') || '') + ' ' + (a.getAttribute('title') || '')).toLowerCase();
+      if (!nav.next && /\bnext\b|sonraki|›|»|→/.test(t)) nav.next = a.href;
+      if (!nav.prev && /\bprev(ious)?\b|önceki|‹|«|←/.test(t)) nav.prev = a.href;
+    }
+    const data = { balonNovel: { r: location.href, t: document.title, p: paras, next: nav.next, prev: nav.prev } };
+    const w = window.open(B + '#al', '_blank');
+    if (!w) { alert('Balon: yeni sekme açılamadı. Açılır pencere engelini kapatıp tekrar dene.'); return; }
+    const on = (ev) => {
+      if (ev.origin !== O || ev.data !== 'balon-ready') return;
+      removeEventListener('message', on);
+      w.postMessage(data, O);
+    };
+    addEventListener('message', on);
+  }
+  const bookmarkletCode = () => 'javascript:' + encodeURIComponent('(' + novelBookmarklet.toString().replace(/\s+/g, ' ') + ')(' + JSON.stringify(location.origin + location.pathname) + ')');
+
+  function cleanTitle(t) {
+    t = String(t || '').replace(/\s+/g, ' ').trim();
+    const parts = t.split(/\s+[|–—]\s+|\s+-\s+(?=[^-]*$)/);
+    return (parts.length > 1 && parts[0].length >= 4 ? parts.slice(0, -1).join(' – ') : t).slice(0, 160);
+  }
+  async function receiveFromSite() {
+    loading('Bölüm aktarılıyor…');
+    const src = window.opener;
+    let done = false;
+    const stop = (msg) => {
+      if (done) return;
+      done = true;
+      clearInterval(ping);
+      fail(msg);
+    };
+    if (!src) return stop('Yer iminden bilgi gelmedi. Bölümün sitesinde yer imine tekrar dokun.');
+    addEventListener('message', async function on(e) {
+      const d = e.data?.balonNovel;
+      if (e.source !== src || !d || !Array.isArray(d.p)) return;
+      done = true;
+      clearInterval(ping);
+      removeEventListener('message', on);
+      const paras = d.p.map((x) => String(x).slice(0, 5000)).filter(Boolean).slice(0, 4000);
+      const ok = (u) => (/^https?:\/\//.test(String(u || '')) ? String(u) : '');
+      const rec = { id: 'w:' + ok(d.r), kind: 'web', name: cleanTitle(d.t) || 'Aktarılan bölüm', data: paras, next: ok(d.next), prev: ok(d.prev), at: Date.now() };
+      await books.put(rec);
+      openStored(rec);
+    });
+    // Okunan sitenin adresini bilmediğimiz için hedef '*'; giden içerik zararsız bir metin
+    const ping = setInterval(() => { try { src.postMessage('balon-ready', '*'); } catch {} }, 300);
+    setTimeout(() => stop('Bu site Balon’a yazı aktarmayı engelliyor. Metni kopyalayıp "Metin yapıştır" ile açabilirsin.'), 12000);
+  }
+
+  $('#setup-btn').onclick = () => {
+    const code = bookmarkletCode();
+    $('#setup-code').value = code;
+    $('#setup-drag').href = code;
+    openCard(el.setupSheet, $('#setup-copy'));
+  };
+  $('#setup-close').onclick = () => closeCard(el.setupSheet);
+  $('#setup-drag').addEventListener('click', (e) => { e.preventDefault(); toast('Tıklama değil: düğmeyi tutup yer imleri çubuğuna sürükle.'); });
+  $('#setup-copy').onclick = async () => {
+    const box = $('#setup-code');
+    try { await navigator.clipboard.writeText(box.value); toast('Kod kopyalandı. Şimdi bu sayfayı yer imlerine ekle.'); }
+    catch { box.focus(); box.select(); toast('Kodu seçtim, Kopyala’ya dokun.'); }
+  };
+
   const direct = new URLSearchParams(location.search).get('u');
-  if (direct) { el.url.value = direct; openUrl(direct); }
+  if (location.hash === '#al') { history.replaceState(null, '', location.pathname + location.search); receiveFromSite(); }
+  else if (direct) { el.url.value = direct; openUrl(direct); }
   else showHome();
 })();
 </script>

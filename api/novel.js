@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     const body = await r.text();
     const cf = /cloudflare/i.test(r.headers.get('server') || '') || /cf-chl|just a moment/i.test(body);
     if ([403, 429, 503].includes(r.status) && cf) {
-      throw new HttpError(502, 'Bu site bot korumasıyla (Cloudflare) istekleri engelliyor. Bölümün yazısını kopyalayıp "Metin yapıştır" ile açabilirsin.');
+      throw new HttpError(502, 'Bu site bot korumasıyla (Cloudflare) istekleri engelliyor. Ayarlar → "Link açılmayan sitelerde kullan" ile yer imi düğmesini kurup bölümü sitesinden aktarabilirsin.');
     }
     if (r.status >= 400) throw new HttpError(502, `Site ${r.status} hatası döndürdü.`);
     const final = r.url || url.href;
