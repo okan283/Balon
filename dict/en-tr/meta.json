@@ -1,8 +1,14 @@
 {
- "words": 24126,
- "forms": 63317,
- "shards": 628,
+ "words": 76902,
+ "forms": 88911,
+ "shards": 665,
  "built": "2026-11-05",
- "source": "https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl.gz",
- "license": "Wiktionary, CC BY-SA 4.0 (kaikki.org / wiktextract)"
+ "sources": "https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl.gz https://kaikki.org/dictionary/Turkish/kaikki.org-dictionary-Turkish.jsonl.gz https://kaikki.org/trwiktionary/raw-wiktextract-data.jsonl.gz",
+ "stats": {
+  "en_çeviri": 47010,
+  "en_kelime": 24116,
+  "trvikisözlük": 58030,
+  "ters_çeviri": 40762
+ },
+ "license": "Wiktionary / Vikisözlük, CC BY-SA 4.0 (kaikki.org / wiktextract)"
 }
